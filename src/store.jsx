@@ -9,7 +9,7 @@ export const CHECKIN_WINDOW = 30 * 60e3
 export const NOSHOW_GRACE = 15 * 60e3
 export const cancelFee = (total) => Math.min(15, Math.round(total * 0.25 * 100) / 100)
 
-const KEY = 'studentflow-demo-v1'
+const KEY = 'studentflow-demo-v2'
 const uid = (p) => p + Math.random().toString(36).slice(2, 8)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 export const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('')

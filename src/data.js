@@ -163,15 +163,15 @@ export function seed() {
   ]
 
   const webinars = [
-    { id: 'w1', title: 'Your first 10 customers on campus', host: 'u_haddad', at: next(3, 19), registered: 148, tags: ['Marketing'] },
-    { id: 'w2', title: 'Pricing a service so it actually pays', host: 'u_okafor', at: next(3, 19) + 7 * D, registered: 96, tags: ['Pricing'] },
-    { id: 'w3', title: 'Bookkeeping for student founders (and HST basics)', host: 'u_bell', at: next(3, 19) + 14 * D, registered: 71, tags: ['Finance'] },
-    { id: 'w4', title: 'Building an MVP in a weekend with no-code', host: 'u_sharma', at: next(3, 19) + 21 * D, registered: 54, tags: ['Product'] },
+    { id: 'w1', title: 'Your first 10 customers on campus', host: 'u_haddad', at: next(3, 19), registered: 148, tags: ['Marketing'], topic: 'marketing' },
+    { id: 'w2', title: 'Pricing a service so it actually pays', host: 'u_okafor', at: next(3, 19) + 7 * D, registered: 96, tags: ['Pricing'], topic: 'pricing' },
+    { id: 'w3', title: 'Bookkeeping for student founders (and HST basics)', host: 'u_bell', at: next(3, 19) + 14 * D, registered: 71, tags: ['Finance'], topic: 'finance' },
+    { id: 'w4', title: 'Building an MVP in a weekend with no-code', host: 'u_sharma', at: next(3, 19) + 21 * D, registered: 54, tags: ['Product'], topic: 'product' },
   ]
   const recordings = [
-    { id: 'r1', title: 'Validating an idea before you build it', host: 'u_sharma', at: now - 5 * D, mins: 52 },
-    { id: 'r2', title: 'Registering a business in Ontario', host: 'u_bell', at: now - 12 * D, mins: 47 },
-    { id: 'r3', title: 'Photographing products with your phone', host: 'u_haddad', at: now - 19 * D, mins: 38 },
+    { id: 'r1', title: 'Validating an idea before you build it', host: 'u_sharma', at: now - 5 * D, mins: 52, topic: 'validate' },
+    { id: 'r2', title: 'Registering a business in Ontario', host: 'u_bell', at: now - 12 * D, mins: 47, topic: 'legal' },
+    { id: 'r3', title: 'Photographing products with your phone', host: 'u_haddad', at: now - 19 * D, mins: 38, topic: 'marketing' },
   ]
 
   return {
@@ -182,48 +182,48 @@ export function seed() {
 }
 
 export const DOCS = [
-  { id: 'd1', cat: 'Validate', title: 'The 48-hour idea test', mins: 6, body: [
+  { id: 'd1', topic: 'validate', cat: 'Validate', title: 'The 48-hour idea test', mins: 6, body: [
     'Before you build anything, write a one-line promise: who it is for, what problem it solves, and what it costs.',
     'Post it as a listing on the marketplace with a "pre-order" or "waitlist" note. Views, messages and saves tell you more than any survey.',
     'Talk to five people who clicked but did not buy. Ask what almost made them buy, and what stopped them.',
     'Decide in 48 hours: build it, change it, or drop it.',
   ] },
-  { id: 'd2', cat: 'Validate', title: 'Running customer interviews that don’t lie to you', mins: 9, body: [
+  { id: 'd2', topic: 'product', cat: 'Validate', title: 'Running customer interviews that don’t lie to you', mins: 9, body: [
     'Ask about the past, not the future. "When did you last need this?" beats "Would you use this?"',
     'Never pitch during an interview. You are there to learn, not to sell.',
     'Write down exact quotes. They become your marketing copy later.',
   ] },
-  { id: 'd3', cat: 'Launch', title: 'Writing a listing that converts', mins: 5, body: [
+  { id: 'd3', topic: 'launch', cat: 'Launch', title: 'Writing a listing that converts', mins: 5, body: [
     'Lead with the outcome ("8 edited headshots in 48 hours"), not the process.',
     'Use a real photo. Listings with a clear photo get about 3x the clicks on the marketplace.',
     'State hand-off details up front: where, when and how long it takes.',
   ] },
-  { id: 'd4', cat: 'Launch', title: 'Safe, smooth campus hand-offs', mins: 4, body: [
+  { id: 'd4', topic: 'handoff', cat: 'Launch', title: 'Safe, smooth campus hand-offs', mins: 4, body: [
     'Meet in busy, public places such as the UCC Atrium or the Weldon entrance.',
     'Tap "I’m here" when you arrive. It protects you if the other person does not show.',
     'Only read out your code once you have the item or the service is done. Your code is your signature.',
   ] },
-  { id: 'd5', cat: 'Finance', title: 'Pricing: cost-plus vs. value-based', mins: 8, body: [
+  { id: 'd5', topic: 'pricing', cat: 'Finance', title: 'Pricing: cost-plus vs. value-based', mins: 8, body: [
     'Add up materials, your time at a fair hourly rate, and the 7.5% Studentflow fee. That is your floor.',
     'Then ask what the result is worth to the buyer. A $40 headshot that lands a co-op job is cheap.',
     'Raise prices when you are booked out two weeks ahead.',
   ] },
-  { id: 'd6', cat: 'Finance', title: 'Tracking money from day one', mins: 7, body: [
+  { id: 'd6', topic: 'finance', cat: 'Finance', title: 'Tracking money from day one', mins: 7, body: [
     'Open a separate bank account for the business, even as a sole proprietor.',
     'Export your Studentflow sales report monthly. It already lists fees and net payouts.',
     'Keep receipts for supplies; they reduce the income you pay tax on.',
   ] },
-  { id: 'd7', cat: 'Legal', title: 'Registering a business in Ontario', mins: 6, body: [
+  { id: 'd7', topic: 'legal', cat: 'Legal', title: 'Registering a business in Ontario', mins: 6, body: [
     'Operating under your own legal name? You do not need to register. Using a business name (like "Mustang Prints")? Register it through the Ontario Business Registry.',
     'A sole proprietorship is the simplest structure for most student businesses. Incorporate later if liability or investment requires it.',
     'Check with an accountant or the Western Morrissette Institute before making structural decisions.',
   ] },
-  { id: 'd8', cat: 'Legal', title: 'HST: when you need to register', mins: 5, body: [
+  { id: 'd8', topic: 'tax', cat: 'Legal', title: 'HST: when you need to register', mins: 5, body: [
     'You are a "small supplier" until your taxable sales pass $30,000 over four consecutive calendar quarters.',
     'Once you cross the threshold you must register for a GST/HST number and charge 13% HST in Ontario.',
     'You can register voluntarily earlier to claim input tax credits on your business expenses.',
   ] },
-  { id: 'd9', cat: 'Marketing', title: 'Instagram for campus businesses', mins: 6, body: [
+  { id: 'd9', topic: 'marketing', cat: 'Marketing', title: 'Instagram for campus businesses', mins: 6, body: [
     'Post the people, not just the product. Customers wearing your hoodie on UC Hill beats a flat-lay.',
     'Partner with clubs: a bulk order for one club is often your best marketing to all its members.',
   ] },

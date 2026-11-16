@@ -137,6 +137,109 @@ const ART = {
     </g>) },
 }
 
+// Topic covers for guides, webinars and recordings
+const TOPIC = {
+  validate: { bg: BG.butter, el: (
+    <g>
+      <Shadow rx="55" />
+      <circle cx="160" cy="88" r="42" fill={C.white} stroke={C.line} strokeWidth="2" />
+      <circle cx="160" cy="88" r="30" fill={C.peach} />
+      <path d="M150 96 q10 -26 20 0" stroke={C.orange} strokeWidth="4" fill="none" strokeLinecap="round" />
+      <rect x="142" y="128" width="36" height="12" rx="4" fill={C.navy} /><rect x="146" y="142" width="28" height="10" rx="4" fill={C.navy} />
+      <circle cx="202" cy="58" r="17" fill={C.green} /><path d="M194 58 l6 6 10 -11" stroke={C.white} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M104 60 l-10 -6 M100 88 h-12 M104 116 l-10 6" stroke={C.orange} strokeWidth="4" strokeLinecap="round" />
+    </g>) },
+  launch: { bg: BG.blue, el: (
+    <g>
+      <circle cx="96" cy="50" r="3" fill={C.brand} /><circle cx="236" cy="70" r="4" fill={C.orange} /><circle cx="214" cy="40" r="2.5" fill={C.navy} /><circle cx="110" cy="150" r="3" fill={C.orange} />
+      <g transform="rotate(40 160 100)">
+        <path d="M160 30 q26 26 22 86 h-44 q-4 -60 22 -86 z" fill={C.white} stroke={C.line} strokeWidth="2" />
+        <circle cx="160" cy="76" r="11" fill={C.brand} /><circle cx="160" cy="76" r="5" fill={C.brandLight} />
+        <path d="M138 100 l-16 22 h18 z M182 100 l16 22 h-18 z" fill={C.navy} />
+        <path d="M148 118 q12 40 24 0 z" fill={C.orange} />
+      </g>
+    </g>) },
+  finance: { bg: BG.mint, el: (
+    <g>
+      <Shadow rx="80" />
+      {[0, 1, 2, 3].map((i) => <ellipse key={i} cx="118" cy={160 - i * 12} rx="30" ry="9" fill={i % 2 ? C.orange : C.peach} stroke={C.white} strokeWidth="2" />)}
+      <rect x="168" y="118" width="18" height="50" rx="4" fill={C.brandLight} />
+      <rect x="192" y="96" width="18" height="72" rx="4" fill={C.brand} />
+      <rect x="216" y="70" width="18" height="98" rx="4" fill={C.navy} />
+      <path d="M164 92 L194 70 L212 80 L240 50" stroke={C.green} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M228 50 h12 v12" stroke={C.green} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </g>) },
+  legal: { bg: BG.lilac, el: (
+    <g>
+      <Shadow rx="65" />
+      <rect x="110" y="34" width="92" height="128" rx="8" fill={C.paper} stroke={C.line} strokeWidth="2" />
+      {[56, 70, 84, 98, 112].map((y, i) => <rect key={y} x="124" y={y} width={i === 0 ? 50 : i % 2 ? 64 : 56} height="5" rx="2.5" fill={i === 0 ? C.navy : C.line} />)}
+      <path d="M124 140 q10 -10 20 0 t20 0" stroke={C.brand} strokeWidth="3" fill="none" strokeLinecap="round" />
+      <circle cx="204" cy="138" r="22" fill={C.orange} />
+      <circle cx="204" cy="138" r="13" fill="none" stroke={C.white} strokeWidth="3" />
+      <path d="M194 156 l-6 20 10 -5 6 8 4 -18 M214 156 l6 20 -10 -5" fill={C.orange} />
+    </g>) },
+  marketing: { bg: BG.peach, el: (
+    <g>
+      <Shadow rx="70" />
+      <path d="M104 86 L184 52 V148 L104 114 Z" fill={C.brand} />
+      <rect x="86" y="84" width="22" height="32" rx="6" fill={C.navy} />
+      <path d="M112 116 l8 34 h16 l-6 -28" fill={C.navy} />
+      <rect x="180" y="48" width="12" height="104" rx="6" fill={C.brandDark} />
+      <path d="M208 82 q10 18 0 36 M222 70 q18 30 0 60" stroke={C.orange} strokeWidth="5" fill="none" strokeLinecap="round" />
+    </g>) },
+  product: { bg: BG.sky, el: (
+    <g>
+      <Shadow rx="50" />
+      <rect x="124" y="26" width="72" height="144" rx="14" fill={C.navy} />
+      <rect x="130" y="38" width="60" height="120" rx="6" fill={C.paper} />
+      <rect x="136" y="46" width="48" height="26" rx="5" fill={C.brand} />
+      <rect x="136" y="78" width="22" height="22" rx="5" fill={C.peach} /><rect x="162" y="78" width="22" height="22" rx="5" fill={C.brandLight} />
+      <rect x="136" y="106" width="48" height="6" rx="3" fill={C.line} /><rect x="136" y="117" width="34" height="6" rx="3" fill={C.line} />
+      <rect x="136" y="134" width="48" height="14" rx="7" fill={C.orange} />
+      <circle cx="222" cy="64" r="14" fill={C.white} stroke={C.line} strokeWidth="2" /><path d="M216 64 l5 5 8 -9" stroke={C.green} strokeWidth="3" fill="none" strokeLinecap="round" />
+    </g>) },
+  handoff: { bg: BG.mint, el: (
+    <g>
+      <Shadow rx="60" />
+      <path d="M160 152 C130 112 120 96 120 76 a40 40 0 0 1 80 0 c0 20 -10 36 -40 76 z" fill={C.brand} />
+      <circle cx="160" cy="76" r="16" fill={C.white} />
+      <rect x="196" y="48" width="64" height="30" rx="10" fill={C.navy} />
+      <text x="228" y="69" textAnchor="middle" fontFamily="ui-monospace, monospace" fontWeight="700" fontSize="15" letterSpacing="2" fill={C.white}>K7QM</text>
+      <rect x="62" y="96" width="64" height="30" rx="10" fill={C.orange} />
+      <text x="94" y="117" textAnchor="middle" fontFamily="ui-monospace, monospace" fontWeight="700" fontSize="15" letterSpacing="2" fill={C.white}>R2XD</text>
+    </g>) },
+  tax: { bg: BG.sky, el: (
+    <g>
+      <Shadow rx="55" />
+      <rect x="120" y="32" width="80" height="128" rx="12" fill={C.navy} />
+      <rect x="130" y="44" width="60" height="26" rx="5" fill={C.greenLight} />
+      <text x="184" y="63" textAnchor="end" fontFamily="Outfit, sans-serif" fontWeight="700" fontSize="16" fill={C.navy}>13%</text>
+      {[0, 1, 2].map((r) => [0, 1, 2].map((c) => <rect key={r + '' + c} x={130 + c * 21} y={80 + r * 22} width="17" height="17" rx="4" fill={r === 2 && c === 2 ? C.orange : C.brandLight} />))}
+      <circle cx="222" cy="58" r="16" fill={C.orange} /><text x="222" y="64" textAnchor="middle" fontFamily="Outfit, sans-serif" fontWeight="700" fontSize="16" fill={C.white}>%</text>
+    </g>) },
+  pricing: { bg: BG.butter, el: (
+    <g>
+      <Shadow rx="70" />
+      <g transform="rotate(-18 160 100)">
+        <path d="M110 64 H200 L232 100 L200 136 H110 Q100 136 100 126 V74 Q100 64 110 64 Z" fill={C.orange} />
+        <circle cx="208" cy="100" r="7" fill={C.butter || '#fff3d1'} />
+        <text x="150" y="114" textAnchor="middle" fontFamily="Outfit, sans-serif" fontWeight="700" fontSize="40" fill={C.white}>$45</text>
+      </g>
+      <path d="M220 72 q22 -30 40 -10" stroke={C.navy} strokeWidth="3" fill="none" strokeLinecap="round" />
+    </g>) },
+}
+
+export function TopicImage({ topic, className = '', label = '', children }) {
+  const a = TOPIC[topic] || TOPIC.launch
+  return (
+    <div className={`relative overflow-hidden ${className}`} style={{ background: a.bg }}>
+      <svg viewBox="0 0 320 200" className="block h-full w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={label}>{a.el}</svg>
+      {children}
+    </div>
+  )
+}
+
 // Category fallbacks for listings students create in the demo
 const CAT = {
   Merch: 'l_hoodie', Tutoring: 'l_calc', Textbooks: 'l_econ', Creative: 'l_headshots', Tech: 'l_website',

@@ -1,11 +1,22 @@
 import React, { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ShieldCheck, ArrowRight, KeyRound, Check } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
+import { PLANS } from '../data'
 import { Logo, Btn, inputCls, Avatar, ListingArt } from '../ui'
+import { TopicImage } from '../art'
 
-const DEMO = [['u_alex', 'Buyer'], ['u_priya', 'Seller'], ['u_jordan', 'Coaching'], ['u_okafor', 'Expert']]
-const SHOWCASE = ['l_hoodie', 'l_headshots', 'l_mealprep', 'l_calc']
+const DEMO = [
+  { id: 'u_alex', tag: 'Buyer', desc: 'Browse, chat, check out and swap codes' },
+  { id: 'u_priya', tag: 'Seller', desc: 'Listings, orders and sales analytics' },
+  { id: 'u_jordan', tag: 'Seller + coaching', desc: 'Book expert sessions with credits' },
+  { id: 'u_okafor', tag: 'Expert', desc: 'Set availability, see bookings' },
+]
+const PLAN_POINTS = {
+  free: ['Browse and buy', 'Message sellers'],
+  founder: ['Sell on the marketplace', 'Seller analytics', 'Full library + webinars'],
+  coach: ['Everything in Founder', '3 expert sessions a month', 'Unused sessions roll over'],
+}
 
 export default function Landing() {
   const { s, dispatch } = useStore()
@@ -14,15 +25,16 @@ export default function Landing() {
   const [step, setStep] = useState('email')
   const [code, setCode] = useState('')
   const [err, setErr] = useState('')
+  const listing = (id) => s.listings.find((l) => l.id === id)
 
   const submitEmail = (e) => {
     e.preventDefault()
-    if (!/^[^\s@]+@uwo\.ca$/.test(email.trim().toLowerCase())) { setErr('Use your @uwo.ca email.'); return }
+    if (!/^[^\s@]+@uwo\.ca$/.test(email.trim().toLowerCase())) { setErr('Use your Western email address ending in @uwo.ca.'); return }
     setErr(''); setStep('code')
   }
   const submitCode = (e) => {
     e.preventDefault()
-    if (!/^\d{6}$/.test(code)) { setErr('Enter the 6-digit code. Any 6 digits work in the demo.'); return }
+    if (!/^\d{6}$/.test(code)) { setErr('Enter the 6-digit code. In this demo any 6 digits work.'); return }
     const v = email.trim().toLowerCase()
     const existing = Object.values(s.users).find((u) => u.email === v)
     dispatch(existing ? { type: 'signIn', userId: existing.id } : { type: 'signUp', email: v })
@@ -32,57 +44,118 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen">
-      <div className="gutter mx-auto flex h-20 max-w-[1100px] items-center"><Logo size={30} /></div>
-      <section className="gutter mx-auto grid max-w-[1100px] items-center gap-12 pb-20 pt-10 lg:grid-cols-2 lg:pt-20">
-        <div className="min-w-0">
-          <h1 className="font-display text-[44px] font-bold leading-[1.05] tracking-tight sm:text-[60px]">
-            Start your business at <span className="text-brand">Western</span>.
-          </h1>
-          <p className="mt-5 text-lg text-muted">Learn, sell and buy with verified students.</p>
+      <div className="gutter mx-auto flex h-20 max-w-[1150px] items-center"><Logo size={30} /></div>
 
-          <form onSubmit={step === 'email' ? submitEmail : submitCode} noValidate className="mt-10 max-w-md">
-            {step === 'email' ? (
-              <div className="flex gap-2">
+      <section className="gutter mx-auto grid max-w-[1150px] items-center gap-12 pb-20 pt-8 lg:grid-cols-[1.1fr_1fr] lg:pt-14">
+        <div className="min-w-0">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-brandsoft px-3 py-1 text-xs font-semibold text-brand">
+            <ShieldCheck size={14} /> Now live at Western University
+          </div>
+          <h1 className="font-display text-[42px] font-bold leading-[1.04] tracking-tight sm:text-[58px]">
+            Test your business idea on <span className="text-brand">30,000</span> classmates.
+          </h1>
+          <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-muted">
+            Learn from expert-led guides and webinars, post your product or service to a students-only marketplace, and get real orders and feedback in your first week.
+          </p>
+          <div className="mt-8 grid max-w-xl grid-cols-4 gap-3" aria-hidden="true">
+            {['l_hoodie', 'l_headshots', 'l_mealprep', 'l_calc'].map((id) => <ListingArt key={id} listing={listing(id)} className="aspect-square rounded-2xl" />)}
+          </div>
+        </div>
+
+        <div className="rounded-3xl bg-surface p-6 sm:p-8">
+          {step === 'email' ? (
+            <form onSubmit={submitEmail} noValidate>
+              <h2 className="font-display text-2xl font-bold">Sign in or join</h2>
+              <p className="mt-1 text-muted">We’ll send a one-time code to your Western inbox.</p>
+              <div className="mt-6 flex gap-2">
                 <input id="email" type="email" autoComplete="email" placeholder="you@uwo.ca" value={email} onChange={(e) => setEmail(e.target.value)} className={`${inputCls} h-12 !rounded-full px-5`} aria-label="Western email" />
                 <Btn size="lg" type="submit" aria-label="Send code"><ArrowRight size={18} /></Btn>
               </div>
-            ) : (
-              <div className="flex gap-2">
+            </form>
+          ) : (
+            <form onSubmit={submitCode} noValidate>
+              <h2 className="font-display text-2xl font-bold">Check your inbox</h2>
+              <p className="mt-1 text-muted">Code sent to <b className="font-medium text-ink">{email}</b></p>
+              <div className="mt-6 flex gap-2">
                 <input id="otp" inputMode="numeric" maxLength={6} placeholder="6-digit code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} className={`${inputCls} h-12 !rounded-full px-5 tracking-[0.3em] tnum`} aria-label="Verification code" />
-                <Btn size="lg" type="submit">Verify</Btn>
+                <Btn size="lg" type="submit"><KeyRound size={16} /> Verify</Btn>
               </div>
-            )}
-            <p className={`mt-2 px-5 text-[13px] ${err ? 'text-danger' : 'text-muted'}`}>{err || (step === 'email' ? 'We’ll email you a code.' : `Code sent to ${email}`)}</p>
-          </form>
+              <button type="button" onClick={() => { setStep('email'); setErr('') }} className="mt-3 px-5 text-[13px] text-muted hover:text-ink">Use a different email</button>
+            </form>
+          )}
+          {err && <p className="mt-2 px-5 text-[13px] text-danger">{err}</p>}
 
-          <div className="mt-12">
-            <div className="mb-3 text-[13px] text-muted">Or try the demo as</div>
-            <div className="flex flex-wrap gap-2">
-              {DEMO.map(([id, tag]) => (
-                <button key={id} onClick={() => enter(id)} className="flex items-center gap-2 rounded-full bg-surface py-1.5 pl-1.5 pr-4 text-sm hover:bg-brandsoft">
-                  <Avatar user={s.users[id]} size={28} /><span className="font-medium">{tag}</span>
-                </button>
-              ))}
+          <div className="mt-8 border-t border-line pt-6">
+            <div className="mb-3 text-[13px] text-muted">Investor demo: jump in as</div>
+            <div className="grid gap-1">
+              {DEMO.map((d) => {
+                const u = s.users[d.id]
+                return (
+                  <button key={d.id} onClick={() => enter(d.id)} className="group flex items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-bg">
+                    <Avatar user={u} size={36} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium">{u.name} <span className="font-normal text-muted">· {d.tag}</span></span>
+                      <span className="block truncate text-[13px] text-muted">{d.desc}</span>
+                    </span>
+                    <ArrowRight size={16} className="text-muted transition group-hover:translate-x-0.5 group-hover:text-brand" />
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
-        <div className="hidden grid-cols-2 gap-4 lg:grid">
-          {SHOWCASE.map((id, i) => <ListingArt key={id} listing={s.listings.find((l) => l.id === id)} className={`aspect-square rounded-3xl ${i % 2 ? 'translate-y-8' : ''}`} />)}
+      </section>
+
+      <section className="gutter mx-auto max-w-[1150px] pb-20">
+        <div className="grid gap-8 md:grid-cols-3">
+          {[
+            [<TopicImage key="t" topic="launch" label="Learn" className="aspect-[16/10] rounded-3xl" />, 'Learn', 'Guides, weekly webinars and 1:1 sessions with industry experts.'],
+            [<ListingArt key="l" listing={listing('l_hoodie')} className="aspect-[16/10] rounded-3xl" />, 'Sell', 'List products or services, chat with buyers, track every sale.'],
+            [<ListingArt key="b" listing={listing('l_mealprep')} className="aspect-[16/10] rounded-3xl" />, 'Buy', 'Find tutoring, merch, food and more from verified students.'],
+          ].map(([img, t, d]) => (
+            <div key={t}>
+              {img}
+              <div className="mt-4 font-display text-xl font-bold">{t}</div>
+              <p className="mt-1 text-muted">{d}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      <section className="gutter mx-auto max-w-[1100px] border-t border-line py-16">
-        <h2 className="font-display text-2xl font-bold">Every sale is confirmed with a code swap</h2>
-        <ol className="mt-8 grid gap-8 sm:grid-cols-4">
-          {[['Buy', 'Payment is held'], ['12 hours before', 'Order locks in'], ['Meet up', 'Both check in'], ['Swap codes', 'Seller gets paid']].map(([t, d], i) => (
-            <li key={t}>
-              <div className="font-display text-sm font-bold text-accent tnum">0{i + 1}</div>
-              <div className="mt-1 font-medium">{t}</div>
-              <div className="text-[13px] text-muted">{d}</div>
-            </li>
-          ))}
-        </ol>
+      <section className="bg-surface">
+        <div className="gutter mx-auto max-w-[1150px] py-20">
+          <h2 className="font-display text-3xl font-bold">Every order is confirmed by a code swap</h2>
+          <p className="mt-2 max-w-2xl text-muted">Buyers and sellers each get a 4-character code. Money only moves when both codes are entered, so every sale on Studentflow is verified.</p>
+          <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ['Order placed', 'The buyer’s card is authorized and the payment is held. Free cancellation until 12 hours before the hand-off.'],
+              ['12-hour lock', 'The order locks in. A late buyer cancellation pays the seller 25% of the order (up to $15).'],
+              ['Check in', 'Both tap “I’m here” at the meeting spot. This decides who is responsible if someone doesn’t show.'],
+              ['Swap codes', 'Each person enters the other’s code. Payment is captured and the seller is paid, minus 7.5%.'],
+            ].map(([t, d], i) => (
+              <li key={t}>
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand font-display text-sm font-bold text-white">{i + 1}</span>
+                <div className="mt-4 font-medium">{t}</div>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted">{d}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
       </section>
+
+      <section className="gutter mx-auto max-w-[1150px] py-20">
+        <h2 className="font-display text-3xl font-bold">Plans</h2>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {Object.entries(PLANS).map(([k, p]) => (
+            <div key={k} className={`rounded-3xl p-7 ${k === 'coach' ? 'bg-brandsoft/60' : 'bg-surface'}`}>
+              <div className="font-medium">{p.name}</div>
+              <div className="mt-2 font-display text-4xl font-bold tnum">${p.price}<span className="text-base font-medium text-muted">/month</span></div>
+              <ul className="mt-5 space-y-2 text-sm">{PLAN_POINTS[k].map((f) => <li key={f} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-muted" />{f}</li>)}</ul>
+            </div>
+          ))}
+        </div>
+      </section>
+      <footer className="gutter mx-auto max-w-[1150px] border-t border-line py-6 text-xs text-muted">Investor prototype · sample data · no real payments.</footer>
     </div>
   )
 }

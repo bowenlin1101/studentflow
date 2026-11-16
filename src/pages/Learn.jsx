@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Lock, PlayCircle, ArrowUpRight } from 'lucide-react'
+import { Lock, Play, ArrowUpRight } from 'lucide-react'
+import { TopicImage } from '../art'
 import { useNavigate } from 'react-router-dom'
 import { useStore, fmtWhen, fmtTime, D, H, canSell } from '../store'
 import { DOCS } from '../data'
@@ -22,39 +23,59 @@ function Library({ unlocked }) {
   const { s } = useStore()
   const nav = useNavigate()
   const [doc, setDoc] = useState(null)
-  const cats = [...new Set(DOCS.map((d) => d.cat))]
+  const [featured, ...rest] = DOCS
   return (
-    <div className="space-y-10">
-      {cats.map((c) => (
-        <section key={c}>
-          <h2 className="mb-2 text-[13px] font-medium text-muted">{c}</h2>
-          <div className="grid gap-1">
-            {DOCS.filter((d) => d.cat === c).map((d, i) => {
-              const locked = !unlocked && i > 0
-              return (
-                <button key={d.id} onClick={() => (locked ? nav('/pricing') : setDoc(d))} className="flex items-center gap-4 rounded-2xl px-3 py-3 text-left hover:bg-surface">
-                  <span className={`flex-1 font-medium ${locked ? 'text-muted' : ''}`}>{d.title}</span>
-                  {locked ? <Lock size={14} className="text-muted" /> : <span className="text-[13px] text-muted">{d.mins} min</span>}
-                </button>
-              )
-            })}
-          </div>
-        </section>
-      ))}
+    <div className="space-y-12">
+      <button onClick={() => setDoc(featured)} className="group grid w-full overflow-hidden rounded-3xl bg-surface text-left sm:grid-cols-[1.2fr_1fr]">
+        <TopicImage topic={featured.topic} label={featured.title} className="aspect-[16/10] sm:aspect-auto sm:min-h-[240px]" />
+        <div className="flex flex-col justify-center p-6 sm:p-8">
+          <div className="text-[13px] font-medium text-accent">Start here</div>
+          <div className="mt-2 font-display text-2xl font-bold leading-tight group-hover:text-brand">{featured.title}</div>
+          <div className="mt-2 text-[13px] text-muted">{featured.cat} · {featured.mins} min read</div>
+        </div>
+      </button>
+
       <section>
-        <h2 className="mb-3 text-[13px] font-medium text-muted">Recordings</h2>
+        <h2 className="mb-4 text-[13px] font-medium text-muted">Guides</h2>
+        <div className="grid gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
+          {rest.map((d) => {
+            const locked = !unlocked && DOCS.filter((x) => x.cat === d.cat)[0].id !== d.id
+            return (
+              <button key={d.id} onClick={() => (locked ? nav('/pricing') : setDoc(d))} className="group text-left">
+                <TopicImage topic={d.topic} label={d.title} className={`aspect-[16/10] rounded-2xl ${locked ? 'opacity-60' : 'transition group-hover:opacity-90'}`}>
+                  {locked && <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-surface text-muted"><Lock size={14} /></span>}
+                </TopicImage>
+                <div className="mt-3 font-medium leading-snug">{d.title}</div>
+                <div className="mt-0.5 text-[13px] text-muted">{d.cat} · {d.mins} min</div>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-[13px] font-medium text-muted">Webinar recordings</h2>
         <div className="grid gap-5 sm:grid-cols-3">
           {s.recordings.map((r) => (
             <div key={r.id}>
-              <div className="brand-grad flex aspect-video items-center justify-center rounded-2xl text-white/90"><PlayCircle size={36} strokeWidth={1.4} /></div>
-              <div className="mt-2 font-medium leading-snug">{r.title}</div>
-              <div className="text-[13px] text-muted">{r.mins} min</div>
+              <TopicImage topic={r.topic} label={r.title} className="aspect-video rounded-2xl">
+                <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-ink/80 text-bg"><Play size={18} className="ml-0.5 fill-current" /></span></span>
+                <span className="absolute bottom-2 right-2 rounded-md bg-ink/80 px-1.5 py-0.5 text-[11px] font-medium text-bg tnum">{r.mins}:00</span>
+              </TopicImage>
+              <div className="mt-3 font-medium leading-snug">{r.title}</div>
+              <div className="text-[13px] text-muted">{s.users[r.host].name}</div>
             </div>
           ))}
         </div>
       </section>
+
       <Modal open={!!doc} onClose={() => setDoc(null)} title={doc?.title} wide>
-        {doc && <div className="space-y-3 leading-relaxed text-muted">{doc.body.map((p, i) => <p key={i}>{p}</p>)}</div>}
+        {doc && (
+          <div>
+            <TopicImage topic={doc.topic} label={doc.title} className="-mx-5 -mt-1 mb-5 aspect-[16/7]" />
+            <div className="space-y-3 leading-relaxed text-muted">{doc.body.map((p, i) => <p key={i}>{p}</p>)}</div>
+          </div>
+        )}
       </Modal>
     </div>
   )
@@ -63,27 +84,44 @@ function Library({ unlocked }) {
 function Webinars({ unlocked }) {
   const { s, me, dispatch, toast } = useStore()
   const nav = useNavigate()
+  const [next, ...later] = s.webinars
+  const Join = ({ w }) => {
+    const on = (s.registered[w.id] || []).includes(me.id)
+    return unlocked
+      ? <Btn size="sm" variant={on ? 'ghost' : 'primary'} onClick={() => { dispatch({ type: 'register', id: w.id, userId: me.id }); toast(on ? 'Removed' : 'You’re in') }}>{on ? 'Going ✓' : 'Join'}</Btn>
+      : <Btn size="sm" variant="outline" onClick={() => nav('/pricing')}><Lock size={13} /> Founder</Btn>
+  }
   return (
-    <div className="grid gap-1">
-      {s.webinars.map((w) => {
-        const on = (s.registered[w.id] || []).includes(me.id)
-        const d = new Date(w.at)
-        return (
-          <div key={w.id} className="flex items-center gap-4 rounded-2xl px-3 py-3 hover:bg-surface">
-            <div className="w-12 shrink-0 text-center">
-              <div className="text-[11px] font-medium uppercase text-muted">{d.toLocaleDateString('en-CA', { month: 'short' })}</div>
-              <div className="font-display text-2xl font-bold leading-none tnum">{d.getDate()}</div>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium leading-snug">{w.title}</div>
-              <div className="text-[13px] text-muted">{s.users[w.host].name} · {fmtTime(w.at)}</div>
-            </div>
-            {unlocked
-              ? <Btn size="sm" variant={on ? 'ghost' : 'outline'} onClick={() => { dispatch({ type: 'register', id: w.id, userId: me.id }); toast(on ? 'Removed' : 'You’re in') }}>{on ? 'Going ✓' : 'Join'}</Btn>
-              : <button onClick={() => nav('/pricing')} className="text-muted" aria-label="Unlock with Founder plan"><Lock size={14} /></button>}
+    <div className="space-y-10">
+      <div className="overflow-hidden rounded-3xl bg-surface">
+        <TopicImage topic={next.topic} label={next.title} className="aspect-[16/7] sm:aspect-[16/5]">
+          <span className="absolute left-4 top-4 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white">Next live session</span>
+        </TopicImage>
+        <div className="flex flex-wrap items-center gap-4 p-6">
+          <div className="min-w-0 flex-1">
+            <div className="font-display text-xl font-bold leading-tight">{next.title}</div>
+            <div className="mt-1 flex items-center gap-2 text-[13px] text-muted"><Avatar user={s.users[next.host]} size={22} />{s.users[next.host].name} · {fmtWhen(next.at)}</div>
           </div>
-        )
-      })}
+          <Join w={next} />
+        </div>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-3">
+        {later.map((w) => (
+          <div key={w.id}>
+            <TopicImage topic={w.topic} label={w.title} className="aspect-[16/10] rounded-2xl">
+              <span className="absolute left-3 top-3 rounded-xl bg-surface px-2.5 py-1 text-center leading-none">
+                <span className="block text-[10px] font-medium uppercase text-muted">{new Date(w.at).toLocaleDateString('en-CA', { month: 'short' })}</span>
+                <span className="block font-display text-lg font-bold tnum">{new Date(w.at).getDate()}</span>
+              </span>
+            </TopicImage>
+            <div className="mt-3 font-medium leading-snug">{w.title}</div>
+            <div className="mt-0.5 flex items-center justify-between gap-2">
+              <span className="text-[13px] text-muted">{s.users[w.host].name}</span>
+              <Join w={w} />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -171,7 +209,7 @@ export default function Learn() {
   const [tab, setTab] = useState(me.plan === 'coach' ? 'coaching' : 'library')
   const unlocked = canSell(me) || me.role === 'expert'
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-5xl">
       <h1 className="mb-6 font-display text-3xl font-bold">Learn</h1>
       <Tabs value={tab} onChange={setTab} tabs={[{ id: 'library', label: 'Library' }, { id: 'webinars', label: 'Webinars' }, ...(me.role === 'expert' ? [] : [{ id: 'coaching', label: 'Coaching' }])]} />
       {tab === 'library' && <Library unlocked={unlocked} />}
