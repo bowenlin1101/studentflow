@@ -22,14 +22,13 @@ export default function Messages() {
   }
 
   if (!convs.length) return (
-    <div><PageHead eyebrow="Messages" title="Messages" />
-      <div className="rounded-2xl border border-dashed border-line p-10 text-center text-muted">No conversations yet. Open any listing and tap “Message seller”.</div></div>
+    <div><PageHead title="Messages" /><p className="py-16 text-center text-muted">No messages yet.</p></div>
   )
 
   return (
     <div>
-      <PageHead eyebrow="Messages" title="Messages" sub="Chat with buyers and sellers. Keep payments on Studentflow so you are covered by the code swap." />
-      <div className="grid h-[70vh] min-h-[480px] overflow-hidden rounded-2xl border border-line bg-surface md:grid-cols-[320px_1fr]">
+      <PageHead title="Messages" />
+      <div className="grid h-[72vh] min-h-[480px] overflow-hidden rounded-3xl bg-surface md:grid-cols-[300px_1fr]">
         <ul className={`overflow-y-auto border-line md:border-r ${active ? 'hidden md:block' : ''}`}>
           {convs.map((c) => {
             const other = s.users[c.buyerId === me.id ? c.sellerId : c.buyerId]
@@ -37,12 +36,11 @@ export default function Messages() {
             const last = c.messages.at(-1)
             return (
               <li key={c.id}>
-                <button onClick={() => setOpenId(c.id)} className={`flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left hover:bg-surface2 ${openId === c.id ? 'bg-brandsoft/50' : ''}`}>
+                <button onClick={() => setOpenId(c.id)} className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface2 ${openId === c.id ? 'bg-brandsoft/50' : ''}`}>
                   <Avatar user={other} size={40} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2"><span className="truncate font-semibold">{other.name}</span><span className="shrink-0 text-[11px] text-muted">{last ? fmtDay(last.t) : ''}</span></div>
-                    <div className="truncate text-xs font-semibold text-brand">{l.title}</div>
-                    <div className="truncate text-xs text-muted">{last ? last.text : 'No messages yet'}</div>
+                                        <div className="truncate text-xs text-muted">{last ? last.text : 'No messages yet'}</div>
                   </div>
                 </button>
               </li>
@@ -62,10 +60,10 @@ export default function Messages() {
                   <button onClick={() => nav('/listing/' + l.id)} className="block truncate text-sm font-semibold hover:text-brand">{l.title}</button>
                   <div className="text-xs text-muted">with {other.name}</div>
                 </div>
-                {order ? <Btn size="sm" variant="soft" onClick={() => nav('/orders/' + order.id)}><Badge tone={STATUS[orderStatus(order, now)].tone} className="!bg-transparent !p-0">{order.id}</Badge> View order</Btn>
+                {order ? <Btn size="sm" variant="soft" onClick={() => nav('/orders/' + order.id)}>View order</Btn>
                   : active.buyerId === me.id && <Btn size="sm" onClick={() => nav('/listing/' + l.id)}>Order</Btn>}
               </div>
-              <div className="flex-1 space-y-2 overflow-y-auto bg-bg/50 p-4">
+              <div className="flex-1 space-y-2 overflow-y-auto p-4">
                 {active.messages.map((m, i) => m.from === 'system' ? (
                   <div key={i} className="mx-auto flex max-w-sm items-center justify-center gap-1.5 rounded-full bg-surface2 px-3 py-1 text-center text-[11.5px] text-muted"><ShieldCheck size={12} />{m.text}</div>
                 ) : (

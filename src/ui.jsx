@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
-import { X, Star, GraduationCap, Shirt, BookOpen, Palette, UtensilsCrossed, Lamp, Wrench, Laptop, Lock } from 'lucide-react'
+import { X, Star, Lock } from 'lucide-react'
+import { ListingImage } from './art'
 import { useNavigate } from 'react-router-dom'
 
 export function LogoMark({ size = 32 }) {
@@ -22,8 +23,8 @@ export function Logo({ size = 30 }) {
 }
 
 const BTN = {
-  primary: 'bg-brand text-white hover:brightness-110 shadow-sm',
-  accent: 'bg-accent text-white hover:brightness-105 shadow-sm',
+  primary: 'bg-brand text-white hover:brightness-110',
+  accent: 'bg-accent text-white hover:brightness-105',
   ghost: 'text-ink hover:bg-surface2',
   outline: 'border border-line bg-surface text-ink hover:bg-surface2',
   danger: 'border border-danger/40 text-danger hover:bg-dangersoft',
@@ -32,7 +33,7 @@ const BTN = {
 export function Btn({ variant = 'primary', size = 'md', className = '', children, ...p }) {
   const sz = size === 'sm' ? 'h-8 px-3 text-[13px]' : size === 'lg' ? 'h-12 px-6 text-[15px]' : 'h-10 px-4 text-sm'
   return (
-    <button {...p} className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition disabled:opacity-40 disabled:pointer-events-none ${sz} ${BTN[variant]} ${className}`}>
+    <button {...p} className={`inline-flex items-center justify-center gap-2 rounded-full font-semibold transition disabled:opacity-40 disabled:pointer-events-none ${sz} ${BTN[variant]} ${className}`}>
       {children}
     </button>
   )
@@ -57,21 +58,8 @@ export function Avatar({ user, size = 36 }) {
   )
 }
 
-const CAT_ICON = { Tutoring: GraduationCap, Merch: Shirt, Textbooks: BookOpen, Creative: Palette, Food: UtensilsCrossed, Home: Lamp, Services: Wrench, Tech: Laptop }
-const CAT_HUE = { Tutoring: 228, Merch: 262, Textbooks: 200, Creative: 330, Food: 145, Home: 28, Services: 185, Tech: 240 }
-export function ListingArt({ listing, className = '', big }) {
-  const Icon = CAT_ICON[listing.category] || Palette
-  const h = CAT_HUE[listing.category] ?? 230
-  return (
-    <div className={`relative flex items-center justify-center overflow-hidden ${className}`}
-      style={{ background: `linear-gradient(140deg, hsl(${h} 85% 92%), hsl(${h + 25} 75% 80%))` }}>
-      <svg className="absolute inset-0 h-full w-full opacity-40" viewBox="0 0 200 120" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 80 C40 60 60 100 100 80 S160 60 200 80" stroke="white" strokeWidth="6" fill="none" />
-        <path d="M0 98 C40 78 60 118 100 98 S160 78 200 98" stroke="#ff8533" strokeOpacity=".5" strokeWidth="6" fill="none" />
-      </svg>
-      <Icon size={big ? 72 : 40} strokeWidth={1.6} style={{ color: `hsl(${h} 60% 32%)` }} className="relative" />
-    </div>
-  )
+export function ListingArt({ listing, className = '' }) {
+  return <ListingImage listing={listing} className={className} rounded="" />
 }
 
 export function Stars({ value, count }) {
@@ -114,42 +102,38 @@ export function Field({ label, hint, children }) {
 }
 export const inputCls = 'w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none'
 
-export function PageHead({ eyebrow, title, sub, right }) {
+export function PageHead({ title, right }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div className="min-w-0">
-        {eyebrow && <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand">{eyebrow}</div>}
-        <h1 className="font-display text-[28px] font-bold leading-tight sm:text-[32px]">{title}</h1>
-        {sub && <p className="mt-1 max-w-2xl text-muted">{sub}</p>}
-      </div>
+    <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <h1 className="font-display text-3xl font-bold">{title}</h1>
       {right}
     </div>
   )
 }
 
 export function Panel({ className = '', children }) {
-  return <div className={`rounded-2xl border border-line bg-surface ${className}`}>{children}</div>
+  return <div className={`rounded-3xl bg-surface ${className}`}>{children}</div>
 }
 
-export function Gate({ need, title, children }) {
+export function Gate({ title, children }) {
   const nav = useNavigate()
   return (
-    <Panel className="mx-auto max-w-xl p-8 text-center">
-      <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accentsoft text-accent"><Lock size={22} /></span>
-      <h2 className="font-display text-xl font-semibold">{title}</h2>
-      <p className="mt-2 text-muted">{children}</p>
-      <Btn className="mt-5" onClick={() => nav('/pricing')}>See {need} plan</Btn>
-    </Panel>
+    <div className="mx-auto max-w-md py-16 text-center">
+      <Lock size={22} className="mx-auto text-muted" />
+      <h2 className="mt-4 font-display text-2xl font-bold">{title}</h2>
+      {children && <p className="mt-2 text-muted">{children}</p>}
+      <Btn className="mt-6" onClick={() => nav('/pricing')}>See plans</Btn>
+    </div>
   )
 }
 
 export function Tabs({ tabs, value, onChange }) {
   return (
-    <div className="noscrollbar mb-6 flex gap-1 overflow-x-auto rounded-xl bg-surface2 p-1">
+    <div className="noscrollbar mb-8 flex gap-6 overflow-x-auto border-b border-line">
       {tabs.map((t) => (
         <button key={t.id} onClick={() => onChange(t.id)}
-          className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition ${value === t.id ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>
-          {t.label}{t.count != null && <span className="ml-1.5 text-muted tnum">{t.count}</span>}
+          className={`-mb-px whitespace-nowrap border-b-2 pb-3 text-sm font-medium transition ${value === t.id ? 'border-ink text-ink' : 'border-transparent text-muted hover:text-ink'}`}>
+          {t.label}
         </button>
       ))}
     </div>

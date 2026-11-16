@@ -33,12 +33,8 @@ function PersonaMenu() {
   const offset = Math.round((now - s.baseNow) / H)
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 rounded-xl border border-line bg-surface py-1 pl-1 pr-2 hover:bg-surface2" aria-expanded={open}>
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2 hover:bg-surface" aria-expanded={open}>
         <Avatar user={me} size={30} />
-        <span className="hidden text-left leading-tight sm:block">
-          <span className="block text-[13px] font-semibold">{me.name}</span>
-          <span className="block text-[11px] text-muted">{me.role === 'expert' ? 'Expert' : PLANS[me.plan].name}</span>
-        </span>
         <ChevronDown size={16} className="text-muted" />
       </button>
       {open && (
@@ -94,14 +90,14 @@ function Shell({ children }) {
   const shifted = now !== s.baseNow
   return (
     <div className="min-h-screen">
-      <div style={{ content: '""', position: 'fixed', inset: '0 0 auto', height: 'env(safe-area-inset-top, 0px)', zIndex: 30 }} className="bg-surface" />
-      <header className="sticky z-30 border-b border-line bg-surface/90 backdrop-blur" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
+      <div style={{ content: '""', position: 'fixed', inset: '0 0 auto', height: 'env(safe-area-inset-top, 0px)', zIndex: 30 }} className="bg-bg" />
+      <header className="sticky z-30 bg-bg/85 backdrop-blur" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
         <div className="gutter mx-auto flex h-16 max-w-[1200px] items-center gap-4">
           <NavLink to={expert ? '/expert' : '/market'} aria-label="Studentflow home"><Logo size={28} /></NavLink>
           <nav className="ml-4 hidden flex-1 items-center gap-1 md:flex">
             {links.map((l) => (
-              <NavLink key={l.to} to={l.to} className={({ isActive }) => `relative rounded-lg px-3 py-2 text-sm font-semibold ${isActive ? 'bg-brandsoft text-brand' : 'text-muted hover:text-ink'}`}>
-                {l.label}{l.count ? <span className="ml-1.5 rounded-full bg-accent px-1.5 text-[11px] text-white tnum">{l.count}</span> : null}
+              <NavLink key={l.to} to={l.to} className={({ isActive }) => `relative px-3 py-2 text-sm font-medium ${isActive ? 'text-ink' : 'text-muted hover:text-ink'}`}>
+                {l.label}{l.count ? <span className="absolute right-1 top-1.5 h-1.5 w-1.5 rounded-full bg-accent" /> : null}
               </NavLink>
             ))}
           </nav>
@@ -110,18 +106,15 @@ function Shell({ children }) {
             <PersonaMenu />
           </div>
         </div>
-        <nav className="gutter noscrollbar flex gap-1 overflow-x-auto border-t border-line py-2 md:hidden">
+        <nav className="gutter noscrollbar flex gap-1 overflow-x-auto pb-2 md:hidden">
           {links.map((l) => (
-            <NavLink key={l.to} to={l.to} className={({ isActive }) => `flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold ${isActive ? 'bg-brandsoft text-brand' : 'text-muted'}`}>
-              <l.icon size={15} />{l.label}{l.count ? <span className="rounded-full bg-accent px-1.5 text-[10px] text-white">{l.count}</span> : null}
+            <NavLink key={l.to} to={l.to} className={({ isActive }) => `flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium ${isActive ? 'text-ink' : 'text-muted'}`}>
+              {l.label}{l.count ? <span className="h-1.5 w-1.5 rounded-full bg-accent" /> : null}
             </NavLink>
           ))}
         </nav>
       </header>
-      <main className="gutter mx-auto max-w-[1200px] pb-24 pt-8">{children}</main>
-      <footer className="gutter mx-auto max-w-[1200px] border-t border-line py-6 text-xs text-muted">
-        Investor prototype · sample data · no real payments. Verified Western University (@uwo.ca) students only.
-      </footer>
+      <main className="gutter mx-auto max-w-[1200px] pb-24 pt-6">{children}</main>
     </div>
   )
 }
