@@ -9,6 +9,7 @@ import type { Category, Idea, ValidationEntry, PricingInputs, Day, Block, Moment
 
 export interface LaunchState {
   steps: Record<number, number> // current question index per stage
+  furthest: Record<number, number> // furthest question reached per stage
   done: Record<number, boolean>
   student: { name: string; school: string; year: string; studyPermit: string; helpWith: string[]; helpOther: string; passion: string; workStyle: string; hoursPerWeek: string; hoursFinals: string; startupBudget: string; major: string }
   ideas: Idea[]; ideaId: string | null; category: Category | null
@@ -32,7 +33,7 @@ export interface LaunchState {
 type Section = 'student' | 'validation' | 'pricing' | 'listing' | 'launch' | 'reflect' | 'schedule' | 'checkin'
 
 const initial = () => ({
-  steps: {} as Record<number, number>, done: {} as Record<number, boolean>,
+  steps: {} as Record<number, number>, furthest: {} as Record<number, number>, done: {} as Record<number, boolean>,
   student: { name: '', school: 'Western University', year: '', studyPermit: '', helpWith: [], helpOther: '', passion: '', workStyle: '', hoursPerWeek: '', hoursFinals: '', startupBudget: '', major: '' },
   ideas: [] as Idea[], ideaId: null as string | null, category: null as Category | null,
   validation: { target: '', targetOther: '', targetClass: '', alternative: '', alternativeOther: '', differentiators: [], diffOther: '', log: [] as ValidationEntry[] },
@@ -62,7 +63,7 @@ export const useLaunch = create<LaunchState>()(persist((setState, get) => ({
   ...initial(),
   patch: (k, v) => setState((s) => ({ [k]: { ...(s[k] as object), ...v } }) as Partial<LaunchState>),
   set: (v) => setState(v),
-  setStep: (stage, i) => setState((s) => ({ steps: { ...s.steps, [stage]: i } })),
+  setStep: (stage, i) => setState((s) => ({ steps: { ...s.steps, [stage]: i }, furthest: { ...(s.furthest || {}), [stage]: Math.max(s.furthest?.[stage] ?? 0, i) } })),
   complete: (stage) => setState((s) => ({ done: { ...s.done, [stage]: true } })),
   reset: () => setState({ ...initial() }),
   fill: (stage, me) => {

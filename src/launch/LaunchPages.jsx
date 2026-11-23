@@ -213,7 +213,13 @@ export function StageRunner() {
   )
 
   const resolve = (v) => (typeof v === 'function' ? v(L, d) : v)
-  const answered = Math.min(idx, steps.length)
+  // How far the student had got in this stage, so editing an earlier answer can jump back there
+  const far = Math.min(Math.max(L.furthest?.[n] ?? 0, idx), steps.length)
+  const editing = !atOutput && far > idx
+  const answered = far
+  // When revisiting a finished stage, offer a way back to the stage they were working on
+  const firstOpen = STAGES.find((st) => !L.done[st.n])
+  const frontier = firstOpen && firstOpen.n !== n && L.done[n] ? firstOpen : null
   const pct = Math.round((answered / steps.length) * 100)
   const nextStage = () => {
     L.complete(n)
@@ -237,6 +243,12 @@ export function StageRunner() {
           <span className="font-semibold">{n === 0 ? 'Welcome' : `Stage ${n} · ${def.title}`}</span>
           <span className={`font-semibold tnum ${atOutput ? 'text-accent' : 'text-muted'}`}>{atOutput ? 'Stage complete' : `${answered} of ${steps.length} answered`}</span>
         </div>
+        {frontier && (
+          <button onClick={() => go(frontier.n)} className="mb-2 flex w-full items-center justify-between gap-2 rounded-xl bg-brandsoft px-3 py-2 text-left text-[13px] font-semibold text-brand hover:brightness-95">
+            <span>You’re reviewing an earlier stage.</span>
+            <span className="inline-flex shrink-0 items-center gap-1">Back to Stage {frontier.n}: {frontier.title} <ArrowRight size={14} /></span>
+          </button>
+        )}
         <div className="h-2.5 overflow-hidden rounded-full bg-surface" role="progressbar" aria-valuenow={answered} aria-valuemin={0} aria-valuemax={steps.length} aria-label="Questions answered">
           <div className="h-full rounded-full bg-gradient-to-r from-brand to-accent transition-all duration-500" style={{ width: pct + '%' }} />
         </div>
@@ -246,7 +258,8 @@ export function StageRunner() {
 
       <ol className="relative mt-8">
         {steps.map((step, i) => {
-          const done = i < idx, cur = i === idx
+          // Answers after the one being edited are kept, so they still show as answered
+          const done = i < idx || (i > idx && i < far), cur = i === idx
           const answer = done && step.a ? step.a(L, d) : null
           return (
             <li key={i} ref={cur ? focusRef : undefined} className="relative scroll-mt-44 md:scroll-mt-32 pb-6 pl-12">
@@ -257,16 +270,24 @@ export function StageRunner() {
               {done ? (
                 <button onClick={() => L.setStep(n, i)} className="group block w-full text-left">
                   <span className="block pt-1 text-[13px] text-muted">{resolve(step.q)}</span>
-                  <span className="mt-0.5 flex items-baseline gap-2"><span className="font-medium">{answer || 'Answered'}</span><span className="text-[12px] font-semibold text-brand opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">Edit</span></span>
+                  <span className="mt-0.5 flex items-baseline gap-2"><span className="font-medium">{answer || 'Answered'}</span><span className="text-[12px] font-semibold text-brand/70 transition group-hover:text-brand">Edit</span></span>
                 </button>
               ) : cur ? (
                 <div className="sf-step-in rounded-3xl bg-surface p-5 sm:p-7">
                   <h2 className="font-display text-[24px] font-bold leading-tight sm:text-[28px]">{resolve(step.q)}</h2>
                   {step.hint && <p className="mt-2 text-muted">{resolve(step.hint)}</p>}
                   <div className="mt-5">{step.body(L, d)}</div>
-                  <div className="mt-6 flex items-center justify-between gap-3">
+                  {editing && <p className="mt-5 rounded-xl bg-brandsoft/60 px-3 py-2 text-[13px] text-ink">You’re editing an earlier answer. Your other answers are kept.</p>}
+                  <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                     {i > 0 ? <button onClick={() => L.setStep(n, i - 1)} className="inline-flex items-center gap-1.5 text-[14px] font-medium text-muted hover:text-ink"><ArrowLeft size={16} /> Back</button> : <span />}
-                    <Btn size="lg" disabled={!step.ok(L)} onClick={() => L.setStep(n, i + 1)}>{i === steps.length - 1 ? STEP_CTA[n] : 'Next question'} <ArrowRight size={18} /></Btn>
+                    {editing ? (
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {i + 1 < far && <Btn variant="ghost" disabled={!step.ok(L)} onClick={() => L.setStep(n, i + 1)}>Next question</Btn>}
+                        <Btn size="lg" disabled={!step.ok(L)} onClick={() => L.setStep(n, far)}>{far >= steps.length ? 'Save and see results' : 'Save and return'} <ArrowRight size={18} /></Btn>
+                      </div>
+                    ) : (
+                      <Btn size="lg" disabled={!step.ok(L)} onClick={() => L.setStep(n, i + 1)}>{i === steps.length - 1 ? STEP_CTA[n] : 'Next question'} <ArrowRight size={18} /></Btn>
+                    )}
                   </div>
                 </div>
               ) : (
