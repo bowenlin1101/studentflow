@@ -673,7 +673,8 @@ const price = {
   // Load the chosen idea's defaults (start-up items, benchmarks, time) if they're missing
   onEnter: (L) => { if (L.category && !L.pricing.benchmarkLow) L.patch('pricing', categoryDefaults(L.category)) },
 }
-const listing = { ...OLD[4], canNext: (L) => !!L.listingId }
+// No preview while answering: the finished listing appears once, at the end of the stage
+const listing = { ...OLD[4], preview: undefined, canNext: (L) => !!L.listingId }
 
 const reachOut = {
   title: 'Reach out', gets: 'Messages to 10 people', blurb: 'Your listing is live. Now tell 10 people who’d want it.',
