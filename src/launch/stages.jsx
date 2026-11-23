@@ -806,7 +806,6 @@ const reflect = {
             <>
               <div className="flex flex-wrap items-baseline justify-between gap-2"><div className="font-medium tnum">{totalSales} of {FEES.trialEndsAfterSales} sales</div><div className="text-[13px] text-muted">Your tools are free until your first {FEES.trialEndsAfterSales} sales.</div></div>
               <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-surface"><div className="h-full rounded-full bg-accent transition-all" style={{ width: `${(totalSales / FEES.trialEndsAfterSales) * 100}%` }} /></div>
-              {live && <Btn size="sm" variant="outline" className="mt-4" onClick={simulateSale}>Demo: simulate a sale</Btn>}
             </>
           )}
         </div>
