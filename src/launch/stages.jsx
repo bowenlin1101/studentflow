@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Plus, Trash2, BadgeCheck, Star, Clock, MapPin, AlertTriangle, PartyPopper, Check } from 'lucide-react'
 import { CATEGORIES, DAYS, photoFor } from './lib/categories'
 import { CAMPUS, FEES, SUBSCRIPTION } from './lib/config'
@@ -171,6 +171,41 @@ export function FeedCardPreview({ listing, me }) {
   )
 }
 
+const LEVELS = [
+  { id: 'affordable', label: 'Affordable', note: 'More customers, thinner margins, more hours.' },
+  { id: 'middle', label: 'Middle', note: 'The usual starting point for a new seller.' },
+  { id: 'premium', label: 'Premium', note: 'Fewer customers, higher expectations. Photos and reviews matter more.' },
+]
+export function levelFor(price, d) {
+  if (price < (d.prices.affordable + d.prices.middle) / 2) return 'affordable'
+  if (price > (d.prices.middle + d.prices.premium) / 2) return 'premium'
+  return 'middle'
+}
+
+/** Live Affordable / Middle / Premium meter that follows the price slider, with nearby prices for context. */
+function PriceLevel({ L, d, price }) {
+  const level = levelFor(price, d)
+  const cur = LEVELS.find((l) => l.id === level)
+  // keep the stored level in sync with the slider (useful campus pricing data)
+  useEffect(() => { if (L.pricing.positioning !== level) L.patch('pricing', { positioning: level }) }, [level]) // eslint-disable-line
+  return (
+    <div className="mt-4">
+      <div className="grid grid-cols-3 gap-1.5" role="status" aria-live="polite" aria-label={`Price level: ${cur.label}`}>
+        {LEVELS.map((l) => (
+          <div key={l.id} className={`rounded-xl px-2 py-2 text-center text-[13px] font-semibold transition ${l.id === level ? 'bg-brand text-white' : 'bg-bg text-muted'}`}>
+            {l.label}<span className={`block text-[11px] font-normal tnum ${l.id === level ? 'text-white/80' : ''}`}>around {money(d.prices[l.id])}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-[13px] text-muted">{cur.note}</p>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted">
+        <span className="font-semibold text-ink">Near campus:</span>
+        {d.benchmarks.map((b) => <span key={b.label}>{b.label} {b.range}</span>)}
+      </div>
+    </div>
+  )
+}
+
 function PriceCard({ L }) {
   const { d, price, unitCost, startup, r, bundles, cat } = priceModel(L)
   const min = Math.max(5, Math.round(d.prices.affordable * 0.6)), max = Math.round(d.prices.premium * 1.6)
@@ -180,7 +215,8 @@ function PriceCard({ L }) {
       <div>
         <div className="flex items-baseline justify-between"><label htmlFor="price" className="text-[13px] text-muted">Your price {d.unit}</label><span className="font-display text-4xl font-bold tnum">{money(price)}</span></div>
         <input id="price" type="range" min={min} max={max} step={cat === 'baked_goods' ? 0.5 : 1} value={price} onChange={(e) => L.patch('pricing', { price: +e.target.value })} className="mt-2 w-full accent-[rgb(var(--brand))]" />
-        <div className="flex justify-between text-[11px] text-muted tnum"><span>{money(min)}</span><span>Elsewhere: {d.benchmarks[0].range}</span><span>{money(max)}</span></div>
+        <div className="flex justify-between text-[11px] text-muted tnum"><span>{money(min)}</span><span>{money(max)}</span></div>
+        <PriceLevel L={L} d={d} price={price} />
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="col-span-2 sm:col-span-1 sm:row-span-2"><Stat hero label="You make per hour" value={money2(r.effectiveHourly)} sub={`after fees and ${money2(unitCost)} materials`} /></div>
@@ -632,7 +668,8 @@ const positioningStep = {
 }
 const price = {
   ...OLD[3],
-  steps: [OLD[3].steps[0], OLD[3].steps[1], OLD[3].steps[2], positioningStep, OLD[3].steps[5], OLD[3].steps[6]],
+  steps: [OLD[3].steps[0], OLD[3].steps[1], OLD[3].steps[2], OLD[3].steps[5], OLD[3].steps[6]],
+  preview: undefined, // the price card at the end is the one place numbers appear
   // Load the chosen idea's defaults (start-up items, benchmarks, time) if they're missing
   onEnter: (L) => { if (L.category && !L.pricing.benchmarkLow) L.patch('pricing', categoryDefaults(L.category)) },
 }

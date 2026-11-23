@@ -34,7 +34,6 @@ const SUMMARY = {
     (L) => (L.category === 'baked_goods' ? `${money2(priceModel(L).unitCost)} in ingredients per order` : `${money2(L.pricing.perSessionCost)} per session`),
     (L, d) => `${L.pricing.minutesPerOrder || d.defaultMinutes} minutes per order`,
     (L) => `${money2(priceModel(L).startup)} to start`,
-    (L, d) => `${L_POS[L.pricing.positioning]} · ${money(d.prices[L.pricing.positioning])}`,
     (L) => `${money(L.pricing.monthlyGoal)} a month`,
     (L, d) => (L.pricing.bundles ? join(d.bundles(priceModel(L).price).map((b) => b.name)) : 'No bundles'),
   ],
