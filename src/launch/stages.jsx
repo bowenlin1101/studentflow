@@ -593,8 +593,25 @@ const pick = {
   canNext: (L) => !!L.ideaId && targetOk(L),
 }
 
+// Price: we already know what things cost near campus, so instead of asking for it we show it
+// right where the student picks a price level.
+const positioningStep = {
+  ...OLD[3].steps[4],
+  hint: 'Here’s what people pay near campus for something similar.',
+  body: (L, d) => (
+    <div className="space-y-4">
+      <div className="overflow-hidden rounded-2xl bg-bg">{d.benchmarks.map((b) => (
+        <div key={b.label} className="flex items-baseline justify-between gap-4 border-b border-line px-4 py-3 text-[14px] last:border-0">
+          <span className="text-muted">{b.label}</span><span className="text-right font-semibold tnum">{b.range}</span>
+        </div>
+      ))}</div>
+      {OLD[3].steps[4].body(L, d)}
+    </div>
+  ),
+}
 const price = {
   ...OLD[3],
+  steps: [OLD[3].steps[0], OLD[3].steps[1], OLD[3].steps[2], positioningStep, OLD[3].steps[5], OLD[3].steps[6]],
   // Load the chosen idea's defaults (start-up items, benchmarks, time) if they're missing
   onEnter: (L) => { if (L.category && !L.pricing.benchmarkLow) L.patch('pricing', categoryDefaults(L.category)) },
 }
