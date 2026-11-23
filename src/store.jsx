@@ -1,21 +1,22 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react'
 import { seed } from './data'
+import { sellerRate, buyerFee as buyerFeeFor } from './launch/lib/pricing'
+import { SUBSCRIPTION, FEES } from './launch/lib/config'
 
 export const H = 3600e3
 export const D = 24 * H
-export const FEE_RATE = 0.075
 export const LOCK_MS = 12 * H
 export const CHECKIN_WINDOW = 30 * 60e3
 export const NOSHOW_GRACE = 15 * 60e3
 export const cancelFee = (total) => Math.min(15, Math.round(total * 0.25 * 100) / 100)
 
-const KEY = 'studentflow-demo-v2'
+const KEY = 'studentflow-demo-v3'
 const uid = (p) => p + Math.random().toString(36).slice(2, 8)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 export const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('')
 
 function load() {
-  try { const s = localStorage.getItem(KEY); if (s) { const p = JSON.parse(s); if (p && p.v === 1) return p } } catch {}
+  try { const s = localStorage.getItem(KEY); if (s) { const p = JSON.parse(s); if (p && p.v === 3) return p } } catch {}
   return seed()
 }
 
@@ -50,7 +51,7 @@ function reducer(s, a) {
       const name = handle.split(/[._-]/).filter(Boolean).map((p) => p[0].toUpperCase() + p.slice(1)).join(' ') || 'New Student'
       const id = uid('u_')
       return { ...s, signedIn: true, currentUserId: id,
-        users: { ...s.users, [id]: { id, name, email: a.email, program: 'Western University', plan: 'free', role: 'student', hue: Math.floor(Math.random() * 360) } } }
+        users: { ...s.users, [id]: { id, name, email: a.email, year: '1st', major: 'Western', program: 'Western University', role: 'student', hue: Math.floor(Math.random() * 360) } } }
     }
     case 'signOut': return { ...s, signedIn: false }
     case 'persona': return { ...s, currentUserId: a.userId, signedIn: true }
@@ -58,23 +59,43 @@ function reducer(s, a) {
     case 'clockReset': return { ...s, now: s.baseNow }
     case 'toast': return { ...s, toasts: [...s.toasts, { id: uid('t'), text: a.text }] }
     case 'untoast': return { ...s, toasts: s.toasts.filter((t) => t.id !== a.id) }
-    case 'plan': return { ...s, users: { ...s.users, [a.userId]: { ...s.users[a.userId], plan: a.plan,
-      credits: a.plan === 'coach' ? (s.users[a.userId].credits || { monthly: 3, usedThisMonth: 0, rolledOver: 0, cap: 5 }) : s.users[a.userId].credits } } }
 
     case 'placeOrder': {
       const l = s.listings.find((x) => x.id === a.listingId)
+      const done = s.orders.filter((o) => o.sellerId === l.sellerId && o.outcome === 'completed')
+      const rebook = done.some((o) => o.buyerId === a.buyerId)
+      const price = a.price ?? l.price
       const o = log({
         id: 'SF-' + (2100 + s.orders.length), listingId: l.id, buyerId: a.buyerId, sellerId: l.sellerId,
-        price: l.price, qty: a.qty, total: l.price * a.qty, handoffAt: a.handoffAt, location: a.location, note: a.note,
+        price, qty: a.qty, total: price * a.qty, handoffAt: a.handoffAt, location: a.location, note: a.note || '',
+        rate: sellerRate(done.length + 1, rebook), buyerFee: buyerFeeFor(rebook), rebook, bundle: a.bundle || null,
         createdAt: now, buyerCode: genCode(), sellerCode: genCode(), buyerConfirmed: false, sellerConfirmed: false,
         buyerCheckIn: null, sellerCheckIn: null, outcome: null, tracking: null,
-      }, now, 'Order placed. Card authorized, payment held.')
+      }, now, rebook ? 'Rebooked. Buyer Protection waived, card authorized, payment held.' : 'Order placed. Card authorized, payment held.')
       let convs = s.conversations
       let c = convs.find((x) => x.listingId === l.id && x.buyerId === a.buyerId)
       const sys = { from: 'system', text: `Order ${o.id} placed. Payment is held until both codes are swapped.`, t: now }
       if (c) convs = convs.map((x) => (x === c ? { ...x, messages: [...x.messages, sys] } : x))
       else convs = [...convs, { id: uid('c'), listingId: l.id, buyerId: a.buyerId, sellerId: l.sellerId, messages: [sys] }]
       return { ...s, orders: [o, ...s.orders], conversations: convs, lastOrderId: o.id }
+    }
+    case 'publishListing': {
+      const exists = s.listings.some((l) => l.id === a.listing.id)
+      const listings = exists ? s.listings.map((l) => (l.id === a.listing.id ? { ...l, ...a.listing } : l)) : [a.listing, ...s.listings]
+      const u = s.users[a.listing.sellerId]
+      return { ...s, listings, users: { ...s.users, [u.id]: { ...u, shop: a.shop || u.shop, sellerSince: u.sellerSince || now } }, lastPublished: a.listing.id }
+    }
+    case 'unpublishListing': return { ...s, listings: s.listings.filter((l) => l.id !== a.id) }
+    case 'pauseListing': return { ...s, listings: s.listings.map((l) => (l.id === a.id ? { ...l, paused: a.paused } : l)) }
+    case 'simulateSale': {
+      // demo: a completed sale for a seller's listing
+      const l = s.listings.find((x) => x.id === a.listingId)
+      const done = s.orders.filter((o) => o.sellerId === l.sellerId && o.outcome === 'completed').length
+      const buyers = ['u_alex', 'u_jordan', 'u_emily', 'u_omar', 'u_sam']
+      const o = { id: 'SF-' + (2100 + s.orders.length), listingId: l.id, buyerId: buyers[done % buyers.length], sellerId: l.sellerId, price: l.price, qty: 1, total: l.price,
+        handoffAt: now, location: l.meetLocation || 'UCC Atrium', createdAt: now, rate: sellerRate(done + 1), buyerFee: 1, rebook: false,
+        buyerCode: genCode(), sellerCode: genCode(), buyerConfirmed: true, sellerConfirmed: true, outcome: 'completed', completedAt: now, timeline: [{ t: now, text: 'Demo sale: both codes matched.' }] }
+      return { ...s, orders: [o, ...s.orders], listings: s.listings.map((x) => (x.id === l.id ? { ...x, sales: x.sales + 1 } : x)) }
     }
     case 'order': {
       return { ...s, orders: s.orders.map((o) => (o.id === a.id ? orderReducer(o, a, now) : o)) }
@@ -96,29 +117,6 @@ function reducer(s, a) {
       return { ...s, listings: [l, ...s.listings] }
     }
     case 'toggleListing': return { ...s, listings: s.listings.map((l) => (l.id === a.id ? { ...l, active: !l.active } : l)) }
-    case 'book': {
-      const u = s.users[a.studentId]; const c = { ...u.credits }
-      if (c.rolledOver > 0) c.rolledOver -= 1; else c.usedThisMonth += 1
-      return { ...s, users: { ...s.users, [u.id]: { ...u, credits: c } },
-        sessions: [...s.sessions, { id: uid('s'), expertId: a.expertId, studentId: a.studentId, at: a.at, topic: a.topic, zoom: 'https://zoom.us/j/8' + Math.floor(1e7 + Math.random() * 9e7) }] }
-    }
-    case 'cancelSession': {
-      const ss = s.sessions.find((x) => x.id === a.id); const u = s.users[ss.studentId]
-      const c = { ...u.credits }; if (c.usedThisMonth > 0) c.usedThisMonth -= 1; else c.rolledOver = Math.min(c.cap, c.rolledOver + 1)
-      return { ...s, users: { ...s.users, [u.id]: { ...u, credits: c } }, sessions: s.sessions.filter((x) => x.id !== a.id) }
-    }
-    case 'newMonth': {
-      // demo: roll unused sessions into the bank (capped at 5)
-      const u = s.users[a.userId]; const c = u.credits
-      const unused = Math.max(0, c.monthly - c.usedThisMonth)
-      return { ...s, users: { ...s.users, [u.id]: { ...u, credits: { ...c, usedThisMonth: 0, rolledOver: Math.min(c.cap, c.rolledOver + unused) } } } }
-    }
-    case 'availability': return { ...s, availability: { ...s.availability, [a.expertId]: a.template } }
-    case 'register': {
-      const list = s.registered[a.id] || []
-      const on = list.includes(a.userId)
-      return { ...s, registered: { ...s.registered, [a.id]: on ? list.filter((x) => x !== a.userId) : [...list, a.userId] } }
-    }
     default: return s
   }
 }
@@ -133,7 +131,7 @@ function orderReducer(o, a, now) {
       let out = log(next, now, `${cap(side)} entered the ${side === 'buyer' ? 'seller' : 'buyer'}’s code.`)
       if (next.buyerConfirmed && next.sellerConfirmed) {
         out = log({ ...out, outcome: 'completed', completedAt: now }, now,
-          `Both codes matched. Payment captured and ${money(o.total * (1 - FEE_RATE))} released to the seller.`)
+          `Both codes matched. Payment captured and ${money(payout(o))} released to the seller.`)
       }
       return out
     }
@@ -182,4 +180,18 @@ export function fmtRel(t, now) {
   const txt = `${u[0]}${u[1] === 'min' ? ' min' : u[1]}`
   return d >= 0 ? `in ${txt}` : `${txt} ago`
 }
-export const canSell = (u) => u && (u.plan === 'founder' || u.plan === 'coach')
+export const canSell = (u) => u && u.role === 'student'
+export const sellerFee = (o) => Math.round(o.total * (o.rate ?? 0.08) * 100) / 100
+export const payout = (o) => Math.round((o.total - sellerFee(o)) * 100) / 100
+export const buyerTotal = (o) => o.total + (o.buyerFee ?? 0)
+
+/** Trial: free until the 3rd completed sale or 30 days after first listing, whichever is later; then $15/month. */
+export function sellerStatus(s, userId) {
+  const u = s.users[userId]
+  const sales = s.orders.filter((o) => o.sellerId === userId && o.outcome === 'completed').sort((a, b) => a.completedAt - b.completedAt)
+  const since = u?.sellerSince ?? s.now
+  const third = sales[FEES.trialEndsAfterSales - 1]?.completedAt ?? null
+  const trialEndsAt = third == null ? null : Math.max(third, since + SUBSCRIPTION.trialDays * D)
+  const subscribed = trialEndsAt != null && s.now >= trialEndsAt
+  return { sales: sales.length, needed: FEES.trialEndsAfterSales, trialEndsAt, subscribed, monthly: SUBSCRIPTION.monthly, nextRate: sellerRate(sales.length + 1) }
+}

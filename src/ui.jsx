@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { X, Star, Lock } from 'lucide-react'
 import { ListingImage } from './art'
+import { photoFor } from './launch/lib/categories'
 import { useNavigate } from 'react-router-dom'
 
 export function LogoMark({ size = 32 }) {
@@ -59,6 +60,8 @@ export function Avatar({ user, size = 36 }) {
 }
 
 export function ListingArt({ listing, className = '' }) {
+  const src = listing.photo ? photoFor(listing.photo) : null
+  if (src) return <img src={src} alt={listing.title} className={`block object-cover ${className}`} loading="lazy" />
   return <ListingImage listing={listing} className={className} rounded="" />
 }
 

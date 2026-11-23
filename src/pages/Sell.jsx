@@ -2,7 +2,9 @@ import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Plus, Pause, Play, ArrowRight } from 'lucide-react'
-import { useStore, money, money2, FEE_RATE, D, orderStatus, STATUS, fmtWhen, canSell } from '../store'
+import { useStore, money, money2, D, orderStatus, STATUS, fmtWhen, canSell, payout, sellerFee, sellerStatus } from '../store'
+import { FEES } from '../launch/lib/config'
+import { sellerRate } from '../launch/lib/pricing'
 import { CATEGORIES } from '../data'
 import { Btn, Badge, Gate, Field, inputCls, ListingArt, Tabs } from '../ui'
 import { ListingCard } from './Marketplace'
@@ -32,7 +34,7 @@ function useSeries(me, listings, orders, now, days) {
       const p = out.find((d) => o.completedAt > d.t - D && o.completedAt <= d.t)
       if (p) { p.gross += o.total; p.orders += 1 }
     }
-    out.forEach((d) => { d.net = Math.round(d.gross * (1 - FEE_RATE) * 100) / 100 })
+    out.forEach((d) => { d.net = Math.round(d.gross * (1 - sellerRate(11)) * 100) / 100 })
     return out
   }, [me.id, listings, orders, now, days])
 }
@@ -170,8 +172,8 @@ function Payouts({ me, s, nav }) {
     <div>
       <div className="mb-3 grid grid-cols-3 gap-3">
         <Tile label="Gross sales" value={money2(gross)} />
-        <Tile label="Studentflow fees" value={money2(gross * FEE_RATE)} sub="7.5% per sale" />
-        <Tile label="Paid out" value={money2(gross * (1 - FEE_RATE))} />
+        <Tile label="StudentFlow fees" value={money2(done.reduce((a, o) => a + sellerFee(o), 0))} sub="8% on sales 1–10, then 6%, 4% on rebooks" />
+        <Tile label="Paid out" value={money2(done.reduce((a, o) => a + payout(o), 0))} />
       </div>
       <div className="overflow-x-auto rounded-3xl bg-surface">
         <table className="w-full min-w-[600px] text-sm tnum">
@@ -182,12 +184,88 @@ function Payouts({ me, s, nav }) {
                 <td className="p-4"><button className="font-medium hover:text-brand" onClick={() => nav('/orders/' + o.id)}>{o.id}</button> <span className="text-muted">· {s.listings.find((l) => l.id === o.listingId).title}</span></td>
                 <td className="p-4 text-muted">{fmtWhen(o.completedAt)}</td>
                 <td className="p-4 text-right">{money2(o.total)}</td>
-                <td className="p-4 text-right text-muted">−{money2(o.total * FEE_RATE)}</td>
-                <td className="p-4 text-right font-semibold">{money2(o.total * (1 - FEE_RATE))}</td>
+                <td className="p-4 text-right text-muted">−{money2(sellerFee(o))} <span className="text-xs">({Math.round(o.rate * 100)}%)</span></td>
+                <td className="p-4 text-right font-semibold">{money2(payout(o))}</td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  )
+}
+
+function TrialBar({ st }) {
+  const pct = Math.min(100, (st.sales / st.needed) * 100)
+  return (
+    <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl bg-surface px-5 py-4 text-sm">
+      {st.subscribed ? (
+        <span><b>Seller plan</b> · ${st.monthly}/month · your next sale is charged {Math.round(st.nextRate * 100)}%</span>
+      ) : (
+        <>
+          <span className="font-medium tnum">{Math.min(st.sales, st.needed)} of {st.needed} sales</span>
+          <span className="h-2 w-40 overflow-hidden rounded-full bg-bg"><span className="block h-full rounded-full bg-accent" style={{ width: pct + '%' }} /></span>
+          <span className="text-muted">
+            {st.trialEndsAt
+              ? `Tools free until ${new Date(st.trialEndsAt).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}, then $${st.monthly}/month.`
+              : `Your tools are free until your first ${st.needed} sales (and at least 30 days).`}
+          </span>
+        </>
+      )}
+    </div>
+  )
+}
+
+function Customers({ me, s }) {
+  const done = s.orders.filter((o) => o.sellerId === me.id && o.outcome === 'completed')
+  const byBuyer = {}
+  done.forEach((o) => {
+    if (!byBuyer[o.buyerId]) byBuyer[o.buyerId] = { id: o.buyerId, orders: 0, spent: 0, last: 0 }
+    const b = byBuyer[o.buyerId]
+    b.orders += o.qty > 1 && o.rebook ? 2 : 1
+    b.spent += o.total
+    b.last = Math.max(b.last, o.completedAt)
+  })
+  const list = Object.values(byBuyer).sort((a, b) => b.last - a.last)
+  const regulars = list.filter((b) => b.orders > 1).length
+  const year = new Date(s.now).getFullYear()
+  const ytd = done.filter((o) => new Date(o.completedAt).getFullYear() === year)
+  const fees = ytd.reduce((a, o) => a + sellerFee(o), 0)
+  const earned = ytd.reduce((a, o) => a + payout(o), 0)
+  const tier = Math.round(sellerRate(done.length + 1) * 100)
+  return (
+    <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
+      <div className="space-y-3">
+        <div className="rounded-3xl bg-surface p-5">
+          <div className="flex items-baseline justify-between">
+            <div className="font-medium">Customers</div>
+            <div className="text-[13px] text-muted tnum">{regulars} regular{regulars === 1 ? '' : 's'}</div>
+          </div>
+          <p className="mt-1 text-[13px] text-muted">
+            Regulars who rebook here cost you less: {Math.round(FEES.repeatCustomerRate * 100)}% instead of {tier}%, and they skip the ${FEES.buyerFlatFee} Buyer Protection.
+          </p>
+          <div className="mt-4 grid gap-1">
+            {list.map((b) => (
+              <div key={b.id} className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm tnum">
+                <span className="min-w-0 flex-1 truncate font-medium">{s.users[b.id]?.name}</span>
+                <span className="text-muted">{b.orders} order{b.orders > 1 ? 's' : ''}</span>
+                <span className="w-20 text-right">{money2(b.spent)}</span>
+              </div>
+            ))}
+            {!list.length && <p className="py-6 text-center text-sm text-muted">Customers appear after your first completed sale.</p>}
+          </div>
+        </div>
+        <p className="px-2 text-xs text-muted">Only sales made on StudentFlow count toward reviews, badges and rankings.</p>
+      </div>
+      <div className="h-fit rounded-3xl bg-surface p-5">
+        <div className="font-medium">Tax summary {year}</div>
+        <dl className="mt-4 grid grid-cols-[1fr_auto] gap-y-2 text-sm tnum">
+          <dt className="text-muted">Sales</dt><dd>{money2(ytd.reduce((a, o) => a + o.total, 0))}</dd>
+          <dt className="text-muted">StudentFlow fees</dt><dd>−{money2(fees)}</dd>
+          <dt className="font-medium">Earned</dt><dd className="font-semibold">{money2(earned)}</dd>
+        </dl>
+        <Btn variant="outline" size="sm" className="mt-5 w-full" disabled>Download summary (coming soon)</Btn>
+        <p className="mt-3 text-xs text-muted">Keep this for your tax return. Fees and supplies are usually deductible.</p>
       </div>
     </div>
   )
@@ -198,17 +276,20 @@ export function SellDashboard() {
   const nav = useNavigate()
   const [tab, setTab] = useState('overview')
   if (me.role === 'expert') return <Gate need="a student" title="Selling is for students" />
-  if (!canSell(me)) return <Gate need="Founder" title="Sell on Studentflow">Founder plan, $45/month.</Gate>
+  if (!canSell(me)) return <Gate title="Selling is for students" />
+  const st = sellerStatus(s, me.id)
   return (
     <div>
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="font-display text-3xl font-bold">{me.shop || 'Your shop'}</h1>
-        <Btn onClick={() => nav('/sell/new')}><Plus size={16} /> New listing</Btn>
+        <Btn onClick={() => nav('/launch')}><Plus size={16} /> New listing</Btn>
       </div>
-      <Tabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'listings', label: 'Listings' }, { id: 'payouts', label: 'Payouts' }]} />
+      <TrialBar st={st} />
+      <Tabs value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'listings', label: 'Listings' }, { id: 'payouts', label: 'Payouts' }, { id: 'customers', label: 'Customers & tax' }]} />
       {tab === 'overview' && <Overview me={me} s={s} now={now} nav={nav} />}
       {tab === 'listings' && <Listings me={me} s={s} nav={nav} dispatch={dispatch} toast={toast} />}
       {tab === 'payouts' && <Payouts me={me} s={s} nav={nav} />}
+      {tab === 'customers' && <Customers me={me} s={s} />}
     </div>
   )
 }
@@ -218,7 +299,7 @@ export function NewListing() {
   const nav = useNavigate()
   const [f, setF] = useState({ title: '', category: 'Services', kind: 'service', fulfillment: 'in-person', price: '', unit: '/hr', description: '' })
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
-  if (!canSell(me)) return <Gate need="Founder" title="Sell on Studentflow">Founder plan, $45/month.</Gate>
+  if (!canSell(me)) return <Gate title="Selling is for students" />
   const preview = { ...f, id: 'preview', sellerId: me.id, title: f.title || 'Title', price: +f.price || 0 }
   const valid = f.title.trim().length >= 5 && +f.price > 0 && f.description.trim().length >= 20
   const publish = (e) => {
@@ -247,7 +328,7 @@ export function NewListing() {
           <Field label="Description"><textarea id="desc" rows={4} value={f.description} onChange={set('description')} className={inputCls} /></Field>
           <div className="flex items-center gap-4 pt-2">
             <Btn type="submit" size="lg" disabled={!valid}>Publish</Btn>
-            {+f.price > 0 && <span className="text-[13px] text-muted tnum">You get {money2(+f.price * (1 - FEE_RATE))} per sale</span>}
+            {+f.price > 0 && <span className="text-[13px] text-muted tnum">You get {money2(+f.price * (1 - sellerRate(1)))} per sale</span>}
           </div>
         </form>
         <div className="pointer-events-none hidden lg:block"><ListingCard l={preview} /></div>

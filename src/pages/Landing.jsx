@@ -2,21 +2,15 @@ import React, { useState } from 'react'
 import { ShieldCheck, ArrowRight, KeyRound, Check } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
-import { PLANS } from '../data'
+import { FEES, SUBSCRIPTION } from '../launch/lib/config'
 import { Logo, Btn, inputCls, Avatar, ListingArt } from '../ui'
 import { TopicImage } from '../art'
 
 const DEMO = [
-  { id: 'u_alex', tag: 'Buyer', desc: 'Browse, chat, check out and swap codes' },
-  { id: 'u_priya', tag: 'Seller', desc: 'Listings, orders and sales analytics' },
-  { id: 'u_jordan', tag: 'Seller + coaching', desc: 'Book expert sessions with credits' },
-  { id: 'u_okafor', tag: 'Expert', desc: 'Set availability, see bookings' },
+  { id: 'u_maya', tag: 'New founder', desc: 'Guided launch: “I like baking” to a live listing' },
+  { id: 'u_alex', tag: 'Buyer', desc: 'Browse, book, rebook and swap codes' },
+  { id: 'u_priya', tag: 'Seller', desc: 'Listings, orders, customers and tax summary' },
 ]
-const PLAN_POINTS = {
-  free: ['Browse and buy', 'Message sellers'],
-  founder: ['Sell on the marketplace', 'Seller analytics', 'Full library + webinars'],
-  coach: ['Everything in Founder', '3 expert sessions a month', 'Unused sessions roll over'],
-}
 
 export default function Landing() {
   const { s, dispatch } = useStore()
@@ -40,7 +34,7 @@ export default function Landing() {
     dispatch(existing ? { type: 'signIn', userId: existing.id } : { type: 'signUp', email: v })
     nav('/market')
   }
-  const enter = (id) => { dispatch({ type: 'signIn', userId: id }); nav(s.users[id].role === 'expert' ? '/expert' : '/market') }
+  const enter = (id) => { dispatch({ type: 'signIn', userId: id }); nav(id === 'u_maya' ? '/launch' : '/market') }
 
   return (
     <div className="min-h-screen">
@@ -55,10 +49,10 @@ export default function Landing() {
             Test your business idea on <span className="text-brand">30,000</span> classmates.
           </h1>
           <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-muted">
-            Learn from expert-led guides and webinars, post your product or service to a students-only marketplace, and get real orders and feedback in your first week.
+            Answer a few friendly questions and StudentFlow turns a skill you already have into a priced, live listing on a students-only marketplace. We give you the tools. We only make money when you make money.
           </p>
           <div className="mt-8 grid max-w-xl grid-cols-4 gap-3" aria-hidden="true">
-            {['l_hoodie', 'l_headshots', 'l_mealprep', 'l_calc'].map((id) => <ListingArt key={id} listing={listing(id)} className="aspect-square rounded-2xl" />)}
+            {['l_cookies', 'l_lift', 'l_calc', 'l_cakes'].map((id) => <ListingArt key={id} listing={listing(id)} className="aspect-square rounded-2xl" />)}
           </div>
         </div>
 
@@ -109,9 +103,9 @@ export default function Landing() {
       <section className="gutter mx-auto max-w-[1150px] pb-20">
         <div className="grid gap-8 md:grid-cols-3">
           {[
-            [<TopicImage key="t" topic="launch" label="Learn" className="aspect-[16/10] rounded-3xl" />, 'Learn', 'Guides, weekly webinars and 1:1 sessions with industry experts.'],
-            [<ListingArt key="l" listing={listing('l_hoodie')} className="aspect-[16/10] rounded-3xl" />, 'Sell', 'List products or services, chat with buyers, track every sale.'],
-            [<ListingArt key="b" listing={listing('l_mealprep')} className="aspect-[16/10] rounded-3xl" />, 'Buy', 'Find tutoring, merch, food and more from verified students.'],
+            [<TopicImage key="t" topic="launch" label="Launch" className="aspect-[16/10] rounded-3xl" />, 'Launch', '7 short stages take you from an idea to a price, a listing and your first 10 customers.'],
+            [<ListingArt key="l" listing={listing('l_lift')} className="aspect-[16/10] rounded-3xl" />, 'Sell', 'Chat with buyers, swap codes at hand-off, and track every sale and payout.'],
+            [<ListingArt key="b" listing={listing('l_cookies')} className="aspect-[16/10] rounded-3xl" />, 'Buy', 'Tutoring, workouts and baked goods from verified Western students.'],
           ].map(([img, t, d]) => (
             <div key={t}>
               {img}
@@ -131,7 +125,7 @@ export default function Landing() {
               ['Order placed', 'The buyer’s card is authorized and the payment is held. Free cancellation until 12 hours before the hand-off.'],
               ['12-hour lock', 'The order locks in. A late buyer cancellation pays the seller 25% of the order (up to $15).'],
               ['Check in', 'Both tap “I’m here” at the meeting spot. This decides who is responsible if someone doesn’t show.'],
-              ['Swap codes', 'Each person enters the other’s code. Payment is captured and the seller is paid, minus 7.5%.'],
+              ['Swap codes', 'Each person enters the other’s code. Payment is captured and the seller is paid, minus a small fee.'],
             ].map(([t, d], i) => (
               <li key={t}>
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand font-display text-sm font-bold text-white">{i + 1}</span>
@@ -144,13 +138,16 @@ export default function Landing() {
       </section>
 
       <section className="gutter mx-auto max-w-[1150px] py-20">
-        <h2 className="font-display text-3xl font-bold">Plans</h2>
+        <h2 className="font-display text-3xl font-bold">We only make money when you make money</h2>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {Object.entries(PLANS).map(([k, p]) => (
-            <div key={k} className={`rounded-3xl p-7 ${k === 'coach' ? 'bg-brandsoft/60' : 'bg-surface'}`}>
-              <div className="font-medium">{p.name}</div>
-              <div className="mt-2 font-display text-4xl font-bold tnum">${p.price}<span className="text-base font-medium text-muted">/month</span></div>
-              <ul className="mt-5 space-y-2 text-sm">{PLAN_POINTS[k].map((f) => <li key={f} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-muted" />{f}</li>)}</ul>
+          {[
+            ['Free to start', `No cost until your first ${FEES.trialEndsAfterSales} sales or ${SUBSCRIPTION.trialDays} days, whichever is later. Then $${SUBSCRIPTION.monthly}/month.`],
+            ['Small fee per sale', `8% on your first 10 sales, then 6%. Just 4% when a regular rebooks you.`],
+            ['$1 Buyer Protection', 'Buyers pay $1 per order so their money is held until the code swap. Waived on rebooks.'],
+          ].map(([t, d], i) => (
+            <div key={t} className={`rounded-3xl p-7 ${i === 0 ? 'bg-brandsoft/60' : 'bg-surface'}`}>
+              <div className="font-display text-xl font-bold">{t}</div>
+              <p className="mt-2 text-sm text-muted">{d}</p>
             </div>
           ))}
         </div>

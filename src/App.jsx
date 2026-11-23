@@ -3,22 +3,21 @@ import { MemoryRouter, Routes, Route, NavLink, useNavigate, Navigate, useLocatio
 import { Clock, ChevronDown, RotateCcw, LogOut, Check, Store, GraduationCap, ShoppingBag, MessageCircle, Package, CalendarClock } from 'lucide-react'
 import { StoreProvider, useStore, fmtWhen, H } from './store'
 import { Logo, Avatar, Badge } from './ui'
-import { PLANS } from './data'
 import Landing from './pages/Landing'
 import Marketplace from './pages/Marketplace'
 import ListingPage from './pages/Listing'
 import { OrdersPage, OrderDetail } from './pages/Orders'
 import Messages from './pages/Messages'
 import { SellDashboard, NewListing } from './pages/Sell'
-import Learn from './pages/Learn'
-import Expert from './pages/Expert'
+import { LaunchHub, StageRunner } from './launch/LaunchPages'
+import InvestorView from './launch/InvestorView'
+import { useLaunch } from './launch/store'
 import Pricing from './pages/Pricing'
 
 const PERSONAS = [
+  { id: 'u_maya', tag: 'New founder (guided launch)' },
   { id: 'u_alex', tag: 'Buyer' },
   { id: 'u_priya', tag: 'Seller' },
-  { id: 'u_jordan', tag: 'Seller + coaching' },
-  { id: 'u_okafor', tag: 'Expert' },
 ]
 
 function PersonaMenu() {
@@ -43,12 +42,12 @@ function PersonaMenu() {
           {PERSONAS.map((p) => {
             const u = s.users[p.id]
             return (
-              <button key={p.id} onClick={() => { dispatch({ type: 'persona', userId: p.id }); setOpen(false); nav(u.role === 'expert' ? '/expert' : '/market') }}
+              <button key={p.id} onClick={() => { dispatch({ type: 'persona', userId: p.id }); setOpen(false); nav(p.id === 'u_maya' ? '/launch' : '/market') }}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-surface2">
                 <Avatar user={u} size={32} />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">{u.name}</span>
-                  <span className="block text-xs text-muted">{p.tag}{u.plan ? ` · ${PLANS[u.plan].name}` : ''}</span>
+                  <span className="block text-xs text-muted">{p.tag}</span>
                 </span>
                 {s.currentUserId === p.id && <Check size={16} className="text-brand" />}
               </button>
@@ -66,7 +65,7 @@ function PersonaMenu() {
             </div>
           </div>
           <div className="my-2 border-t border-line" />
-          <button onClick={() => { dispatch({ type: 'reset' }); setOpen(false); dispatch({ type: 'toast', text: 'Demo data reset' }) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-surface2"><RotateCcw size={15} /> Reset demo data</button>
+          <button onClick={() => { dispatch({ type: 'reset' }); useLaunch.getState().reset(); setOpen(false); dispatch({ type: 'toast', text: 'Demo data reset' }) }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-surface2"><RotateCcw size={15} /> Reset demo data</button>
           <button onClick={() => { dispatch({ type: 'signOut' }); nav('/') }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-surface2"><LogOut size={15} /> Sign out</button>
         </div>
       )}
@@ -74,15 +73,19 @@ function PersonaMenu() {
   )
 }
 
+let taps = []
+function tripleTap(e) {
+  const t = Date.now()
+  taps = [...taps.filter((x) => t - x < 700), t]
+  if (taps.length >= 3) { taps = []; e.preventDefault(); window.dispatchEvent(new Event('sf-investor')) }
+}
+
 function Shell({ children }) {
   const { s, me, now } = useStore()
-  const expert = me.role === 'expert'
   const myOrders = s.orders.filter((o) => (o.buyerId === me.id || o.sellerId === me.id) && !o.outcome).length
-  const links = expert
-    ? [{ to: '/expert', label: 'Expert portal', icon: CalendarClock }, { to: '/learn', label: 'Webinars', icon: GraduationCap }]
-    : [
+  const links = [
         { to: '/market', label: 'Marketplace', icon: ShoppingBag },
-        { to: '/learn', label: 'Learn', icon: GraduationCap },
+        { to: '/launch', label: 'Launch', icon: GraduationCap },
         { to: '/sell', label: 'Sell', icon: Store },
         { to: '/orders', label: 'Orders', icon: Package, count: myOrders },
         { to: '/messages', label: 'Messages', icon: MessageCircle },
@@ -93,7 +96,7 @@ function Shell({ children }) {
       <div style={{ content: '""', position: 'fixed', inset: '0 0 auto', height: 'env(safe-area-inset-top, 0px)', zIndex: 30 }} className="bg-bg" />
       <header className="sticky z-30 bg-bg/85 backdrop-blur" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
         <div className="gutter mx-auto flex h-16 max-w-[1200px] items-center gap-4">
-          <NavLink to={expert ? '/expert' : '/market'} aria-label="Studentflow home"><Logo size={28} /></NavLink>
+          <NavLink to="/market" aria-label="StudentFlow home" onClick={tripleTap}><Logo size={28} /></NavLink>
           <nav className="ml-4 hidden flex-1 items-center gap-1 md:flex">
             {links.map((l) => (
               <NavLink key={l.to} to={l.to} className={({ isActive }) => `relative px-3 py-2 text-sm font-medium ${isActive ? 'text-ink' : 'text-muted hover:text-ink'}`}>
@@ -128,15 +131,17 @@ function ToastItem({ t }) {
 function Toasts() {
   const { s } = useStore()
   return (
-    <div className="pointer-events-none fixed inset-x-0 z-[60] flex flex-col items-center gap-2 px-4" style={{ bottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' }} aria-live="polite">
+    <div className="pointer-events-none fixed inset-x-0 z-[60] flex flex-col items-center gap-2 px-4" style={{ bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))' }} aria-live="polite">
       {s.toasts.slice(-2).map((t) => <ToastItem key={t.id} t={t} />)}
     </div>
   )
 }
 
+const PATH_KEY = 'studentflow-path'
+function savedPath() { try { return localStorage.getItem(PATH_KEY) || '/' } catch { return '/' } }
 function ScrollTop() {
   const { pathname } = useLocation()
-  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  useEffect(() => { window.scrollTo(0, 0); try { localStorage.setItem(PATH_KEY, pathname) } catch {} }, [pathname])
   return null
 }
 
@@ -147,7 +152,7 @@ function AppRoutes() {
     <Shell>
       <ScrollTop />
       <Routes>
-        <Route path="/" element={<Navigate to={me.role === 'expert' ? '/expert' : '/market'} replace />} />
+        <Route path="/" element={<Navigate to={me.id === 'u_maya' ? '/launch' : '/market'} replace />} />
         <Route path="/market" element={<Marketplace />} />
         <Route path="/listing/:id" element={<ListingPage />} />
         <Route path="/orders" element={<OrdersPage />} />
@@ -155,8 +160,9 @@ function AppRoutes() {
         <Route path="/messages" element={<Messages />} />
         <Route path="/sell" element={<SellDashboard />} />
         <Route path="/sell/new" element={<NewListing />} />
-        <Route path="/learn" element={<Learn />} />
-        <Route path="/expert" element={<Expert />} />
+        <Route path="/launch" element={<LaunchHub />} />
+        <Route path="/launch/:n" element={<StageRunner />} />
+        <Route path="/learn" element={<Navigate to="/launch" replace />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -167,9 +173,10 @@ function AppRoutes() {
 export default function App() {
   return (
     <StoreProvider>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[savedPath()]}>
         <AppRoutes />
         <Toasts />
+        <InvestorView />
       </MemoryRouter>
     </StoreProvider>
   )

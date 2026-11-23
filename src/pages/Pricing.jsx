@@ -1,37 +1,36 @@
 import React from 'react'
 import { Check } from 'lucide-react'
-import { useStore } from '../store'
-import { PLANS } from '../data'
-import { Btn, PageHead } from '../ui'
+import { PageHead } from '../ui'
+import { FEES, SUBSCRIPTION } from '../launch/lib/config'
 
-const FEATURES = {
-  free: ['Browse and buy', 'Message sellers'],
-  founder: ['Sell on the marketplace', 'Seller dashboard', 'Full library + webinars'],
-  coach: ['Everything in Founder', '3 expert sessions a month', 'Unused sessions roll over'],
-}
+const pct = (n) => `${Math.round(n * 1000) / 10}%`
 
 export default function Pricing() {
-  const { me, dispatch, toast } = useStore()
+  const [t1, t2] = FEES.sellerTiers
   return (
-    <div>
-      <PageHead title="Plans" />
-      <div className="grid gap-4 md:grid-cols-3">
-        {Object.entries(PLANS).map(([k, p]) => {
-          const current = me.plan === k
-          return (
-            <div key={k} className={`flex flex-col rounded-3xl p-7 ${k === 'coach' ? 'bg-brandsoft/60' : 'bg-surface'}`}>
-              <div className="flex items-center justify-between"><div className="font-display text-lg font-semibold">{p.name}</div></div>
-              <div className="mt-3 font-display text-4xl font-bold tnum">${p.price}<span className="text-base font-medium text-muted">/month</span></div>
-              <ul className="mt-5 flex-1 space-y-2.5 text-sm">{FEATURES[k].map((f) => <li key={f} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-muted" />{f}</li>)}</ul>
-              {me.role !== 'expert' && (
-                <Btn className="mt-6 w-full" variant={current ? 'outline' : k === 'coach' ? 'primary' : 'outline'} disabled={current}
-                  onClick={() => { dispatch({ type: 'plan', userId: me.id, plan: k }); toast(`Now on ${p.name}`) }}>
-                  {current ? 'Current' : 'Choose'}
-                </Btn>
-              )}
-            </div>
-          )
-        })}
+    <div className="mx-auto max-w-4xl">
+      <PageHead title="How StudentFlow makes money" />
+      <p className="-mt-4 mb-8 text-lg text-muted">We give you the tools. We only make money when you make money.</p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-3xl bg-surface p-7">
+          <div className="font-medium">Buying</div>
+          <div className="mt-2 font-display text-4xl font-bold tnum">${FEES.buyerFlatFee.toFixed(2)}<span className="text-base font-medium text-muted"> per order</span></div>
+          <ul className="mt-5 space-y-2.5 text-sm">
+            {['Buyer Protection: money held until the code swap', 'Waived when you book the same seller again', 'Browsing and messaging are free'].map((f) => <li key={f} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-muted" />{f}</li>)}
+          </ul>
+        </div>
+        <div className="rounded-3xl bg-brandsoft/60 p-7">
+          <div className="font-medium">Selling</div>
+          <div className="mt-2 font-display text-4xl font-bold tnum">${SUBSCRIPTION.monthly}<span className="text-base font-medium text-muted">/month after your trial</span></div>
+          <ul className="mt-5 space-y-2.5 text-sm">
+            {[
+              `Free until your first ${FEES.trialEndsAfterSales} sales or ${SUBSCRIPTION.trialDays} days, whichever is later`,
+              `${pct(t1.rate)} on your first ${t1.upToSales} sales, then ${pct(t2.rate)}`,
+              `${pct(FEES.repeatCustomerRate)} when a regular rebooks you`,
+              'Guided launch, listing tools, analytics and tax summary included',
+            ].map((f) => <li key={f} className="flex gap-2"><Check size={16} className="mt-0.5 shrink-0 text-muted" />{f}</li>)}
+          </ul>
+        </div>
       </div>
     </div>
   )

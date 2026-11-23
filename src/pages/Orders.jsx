@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Check, MapPin, MessageCircle, FastForward } from 'lucide-react'
-import { useStore, orderStatus, STATUS, money2, fmtWhen, fmtTime, FEE_RATE, LOCK_MS, CHECKIN_WINDOW, NOSHOW_GRACE, cancelFee } from '../store'
+import { useStore, orderStatus, STATUS, money2, fmtWhen, fmtTime, payout, sellerFee, buyerTotal, LOCK_MS, CHECKIN_WINDOW, NOSHOW_GRACE, cancelFee } from '../store'
 import { Badge, Btn, ListingArt, Tabs, inputCls, Modal } from '../ui'
 
-const PERSONA_IDS = ['u_alex', 'u_priya', 'u_jordan']
+const PERSONA_IDS = ['u_alex', 'u_priya', 'u_maya']
 
 function OrderRow({ o }) {
   const { s, me, now } = useStore()
@@ -20,7 +20,7 @@ function OrderRow({ o }) {
         <div className="text-[13px] text-muted tnum">{fmtWhen(o.outcome ? (o.completedAt || o.handoffAt) : o.handoffAt)}</div>
       </div>
       <Badge tone={STATUS[st].tone} className="hidden sm:inline-flex">{STATUS[st].label}</Badge>
-      <div className="w-20 shrink-0 text-right font-semibold tnum">{money2(selling ? o.total * (1 - FEE_RATE) : o.total)}</div>
+      <div className="w-20 shrink-0 text-right font-semibold tnum">{money2(selling ? payout(o) : buyerTotal(o))}</div>
     </button>
   )
 }
@@ -85,7 +85,7 @@ export function OrderDetail() {
   const myCode = side === 'buyer' ? o.buyerCode : o.sellerCode
   const iEntered = o[side + 'Confirmed'], theyEntered = o[otherSide + 'Confirmed']
   const late = now >= o.handoffAt - LOCK_MS
-  const fee = o.total * FEE_RATE
+  const fee = sellerFee(o)
   const canNoShow = live && !remote && now >= o.handoffAt + NOSHOW_GRACE && !o[otherSide + 'CheckIn']
   const conv = s.conversations.find((c) => c.listingId === o.listingId && c.buyerId === o.buyerId)
 
@@ -152,8 +152,8 @@ export function OrderDetail() {
         <dt className="text-muted">{side === 'buyer' ? 'Seller' : 'Buyer'}</dt>
         <dd className="flex items-center gap-2">{other.name}{conv && <button onClick={() => { dispatch({ type: 'openConv', id: conv.id }); nav('/messages') }} className="text-muted hover:text-brand" aria-label="Open chat"><MessageCircle size={15} /></button>}</dd>
         <dt className="text-muted">When</dt><dd>{fmtWhen(o.handoffAt)}</dd>
-        <dt className="text-muted">Total</dt><dd>{money2(o.total)}{o.qty > 1 && <span className="text-muted"> · {o.qty} × {money2(o.price)}</span>}</dd>
-        {side === 'seller' && <><dt className="text-muted">You get</dt><dd>{money2(o.total - fee)} <span className="text-muted">after 7.5% fee</span></dd></>}
+        <dt className="text-muted">{side === 'buyer' ? 'You pay' : 'Order'}</dt><dd>{money2(side === 'buyer' ? buyerTotal(o) : o.total)}{o.qty > 1 && <span className="text-muted"> · {o.qty} × {money2(o.price)}</span>}{side === 'buyer' && <span className="text-muted"> · {o.buyerFee ? `incl. ${money2(o.buyerFee)} Buyer Protection` : 'Buyer Protection waived (rebook)'}</span>}</dd>
+        {side === 'seller' && <><dt className="text-muted">You get</dt><dd>{money2(o.total - fee)} <span className="text-muted">after {Math.round((o.rate ?? 0.08) * 100)}% fee{o.rebook ? ' (regular customer rate)' : ''}</span></dd></>}
       </dl>
 
       <details className="mt-6 text-sm">
