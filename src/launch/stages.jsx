@@ -255,7 +255,12 @@ const OLD = [
       { q: 'How much could you spend to get started?', ok: (L) => !!L.student.startupBudget, body: (L) => <Choices name="Budget" columns={2} options={opts(['0', '$0'], ['under50', 'Under $50'], ['under200', 'Under $200'], ['more', 'More'])} value={L.student.startupBudget} onChange={(v) => L.patch('student', { startupBudget: v })} /> },
     ],
     preview: (L) => L.student.helpWith.length ? (() => { const top = ideasFor(L)[0]; return <div><div className="text-[13px] text-muted">Looking promising</div><div className="mt-1 font-display text-lg font-bold">{top.name}</div><div className="text-[13px] text-brand tnum">{top.fit}% fit so far</div></div> })() : null,
-    onEnterOutput: (L) => { const ideas = ideasFor(L); L.set({ ideas, ideaId: L.ideaId && ideas.some((i) => i.id === L.ideaId) ? L.ideaId : ideas[0].id, category: L.category || ideas[0].category }) },
+    onEnterOutput: (L) => {
+      const ideas = ideasFor(L)
+      const keep = L.ideaId && ideas.some((i) => i.id === L.ideaId)
+      const category = keep ? L.category : ideas[0].category
+      L.set({ ideas, ideaId: keep ? L.ideaId : ideas[0].id, category, ...(keep && L.pricing.benchmarkLow ? {} : { pricing: { ...L.pricing, ...categoryDefaults(category), price: undefined } }) })
+    },
     output: ({ L }) => {
       const ideas = L.ideas.length ? L.ideas : ideasFor(L)
       const pick = (i) => L.set({ ideaId: i.id, category: i.category, pricing: { ...L.pricing, ...categoryDefaults(i.category), price: undefined } })
@@ -588,7 +593,11 @@ const pick = {
   canNext: (L) => !!L.ideaId && targetOk(L),
 }
 
-const price = OLD[3]
+const price = {
+  ...OLD[3],
+  // Load the chosen idea's defaults (start-up items, benchmarks, time) if they're missing
+  onEnter: (L) => { if (L.category && !L.pricing.benchmarkLow) L.patch('pricing', categoryDefaults(L.category)) },
+}
 const listing = { ...OLD[4], canNext: (L) => !!L.listingId }
 
 const reachOut = {

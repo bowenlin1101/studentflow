@@ -187,6 +187,7 @@ export function StageRunner() {
     focusRef.current?.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' })
   }, [idx, n, atOutput])
   useEffect(() => { if (atOutput && def.onEnterOutput) def.onEnterOutput(L) }, [atOutput, n]) // eslint-disable-line
+  useEffect(() => { if (def.onEnter) def.onEnter(L) }, [n, L.category]) // eslint-disable-line
 
   const shell = (main) => (
     <div className="mx-auto grid max-w-6xl gap-10 pb-28 lg:grid-cols-[200px_1fr]">
