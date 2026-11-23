@@ -53,3 +53,7 @@ h1, h2, h3 { text-wrap: balance; }
 .sf-confetti { animation: sf-burst 1.1s ease-out .15s both }
 .sf-step-in { animation: sf-step-in .35s ease-out both }
 @media (prefers-reduced-motion: reduce) { .sf-badge, .sf-confetti, .sf-step-in { animation: none } .sf-confetti { display: none } }
+
+/* Launch progress bar sits right under the sticky app header (two rows on phones, one from md up) */
+.sf-sticky-progress { top: calc(env(safe-area-inset-top, 0px) + 104px) }
+@media (min-width: 768px) { .sf-sticky-progress { top: calc(env(safe-area-inset-top, 0px) + 64px) } }

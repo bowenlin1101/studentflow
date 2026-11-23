@@ -224,13 +224,17 @@ export function StageRunner() {
         <div className="text-[13px] font-semibold text-accent">{n === 0 ? 'Welcome' : `Stage ${n}`}</div>
         <h1 className="mt-1 font-display text-[32px] font-bold leading-tight sm:text-[40px]">{def.title}</h1>
         <p className="mt-1 text-muted">{def.blurb}</p>
-        <div className="mt-5 flex items-center gap-3">
-          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface" role="progressbar" aria-valuenow={answered} aria-valuemin={0} aria-valuemax={steps.length} aria-label="Questions answered">
-            <div className="h-full rounded-full bg-gradient-to-r from-brand to-accent transition-all duration-500" style={{ width: pct + '%' }} />
-          </div>
-          <span className="text-[13px] font-semibold tnum">{answered}/{steps.length}</span>
-        </div>
       </header>
+      {/* Stays pinned under the app header while the student scrolls through the questions */}
+      <div className="sf-sticky-progress sticky z-20 -mx-4 mt-3 bg-bg px-4 py-3 sm:mx-0 sm:px-0">
+        <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[12px]">
+          <span className="font-semibold">{n === 0 ? 'Welcome' : `Stage ${n} · ${def.title}`}</span>
+          <span className={`font-semibold tnum ${atOutput ? 'text-accent' : 'text-muted'}`}>{atOutput ? 'Stage complete' : `${answered} of ${steps.length} answered`}</span>
+        </div>
+        <div className="h-2.5 overflow-hidden rounded-full bg-surface" role="progressbar" aria-valuenow={answered} aria-valuemin={0} aria-valuemax={steps.length} aria-label="Questions answered">
+          <div className="h-full rounded-full bg-gradient-to-r from-brand to-accent transition-all duration-500" style={{ width: pct + '%' }} />
+        </div>
+      </div>
 
       {preview && <aside className="mt-6 rounded-3xl bg-surface p-5" aria-label="Live preview">{preview}</aside>}
 
@@ -239,7 +243,7 @@ export function StageRunner() {
           const done = i < idx, cur = i === idx
           const answer = done && step.a ? step.a(L, d) : null
           return (
-            <li key={i} ref={cur ? focusRef : undefined} className="relative scroll-mt-36 pb-6 pl-12">
+            <li key={i} ref={cur ? focusRef : undefined} className="relative scroll-mt-44 md:scroll-mt-32 pb-6 pl-12">
               <span className={`absolute left-[15px] top-9 h-[calc(100%-28px)] w-0.5 rounded ${done ? 'bg-brand' : 'bg-line'}`} />
               <span className={`absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-bold transition ${done ? 'bg-brand text-white' : cur ? 'bg-surface text-brand ring-2 ring-brand' : 'bg-surface text-muted'}`}>
                 {done ? <Check size={15} strokeWidth={3} /> : i + 1}
@@ -265,7 +269,7 @@ export function StageRunner() {
             </li>
           )
         })}
-        <li ref={atOutput ? focusRef : undefined} className="relative scroll-mt-36 pl-12">
+        <li ref={atOutput ? focusRef : undefined} className="relative scroll-mt-44 md:scroll-mt-32 pl-12">
           <span className={`absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full ${atOutput ? 'bg-accent text-white' : 'bg-surface text-muted'}`}><Trophy size={15} /></span>
           {!atOutput && <span className="block pt-1 text-[15px] text-muted/70">You get: {def.gets}</span>}
         </li>
