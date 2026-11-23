@@ -113,8 +113,8 @@ export const DAYS: Day[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export const BAKING_INGREDIENTS = [
   { id: 'flour', name: 'Flour (2 cups)', cost: 0.8 }, { id: 'sugar', name: 'Sugar (1.5 cups)', cost: 0.9 },
-  { id: 'butter', name: 'Butter (1 cup)', cost: 2.6 }, { id: 'eggs', name: 'Eggs (2)', cost: 0.9 },
-  { id: 'chips', name: 'Chocolate chips (1 bag)', cost: 3.5 }, { id: 'packaging', name: 'Boxes and stickers (4)', cost: 3.0 },
+  { id: 'butter', name: 'Butter (1 cup)', cost: 2.6 }, { id: 'eggs', name: 'Eggs (2 large)', cost: 0.9 },
+  { id: 'chips', name: 'Chocolate chips (1 bag)', cost: 3.5 }, { id: 'packaging', name: 'Boxes and stickers (4 boxes)', cost: 3.0 },
 ]
 
 export const photoFor = (id: string) => photos[id] ?? photos['cookie-broken']

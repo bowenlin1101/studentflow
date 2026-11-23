@@ -57,3 +57,7 @@ h1, h2, h3 { text-wrap: balance; }
 /* Launch progress bar sits right under the sticky app header (two rows on phones, one from md up) */
 .sf-sticky-progress { top: calc(env(safe-area-inset-top, 0px) + 104px) }
 @media (min-width: 768px) { .sf-sticky-progress { top: calc(env(safe-area-inset-top, 0px) + 64px) } }
+
+/* Plain number fields without browser spinner arrows */
+.sf-num { -moz-appearance: textfield; appearance: textfield }
+.sf-num::-webkit-outer-spin-button, .sf-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }

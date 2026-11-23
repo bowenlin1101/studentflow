@@ -54,6 +54,29 @@ function ideasFor(L) {
   return generateNow('ideas', { helpWith: st.helpWith, passion: st.passion, workStyle: st.workStyle, hoursPerWeek: st.hoursPerWeek, budget: st.startupBudget, major: st.major })
 }
 
+/** One cost line: tick to include, name with its amount underneath, and a compact price field. */
+function CostRow({ item, onToggle, onCost }) {
+  const m = item.name.match(/^(.*?)\s*\((.*)\)$/)
+  const name = m ? m[1] : item.name
+  const qty = m ? m[2] : ''
+  return (
+    <label className={`flex items-center gap-3 border-b border-line px-4 py-3 last:border-0 ${item.on ? '' : 'opacity-50'}`}>
+      <input type="checkbox" checked={item.on} onChange={(e) => onToggle(e.target.checked)} className="h-5 w-5 shrink-0 accent-[rgb(var(--brand))]" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-medium leading-tight">{name}</span>
+        {qty && <span className="block text-[13px] text-muted">{qty}</span>}
+      </span>
+      <span className="relative w-24 shrink-0">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-muted">$</span>
+        <input type="number" inputMode="decimal" step="0.05" min="0" value={item.cost} disabled={!item.on}
+          onChange={(e) => onCost(Math.max(0, +e.target.value || 0))}
+          className="sf-num h-11 w-full rounded-xl border border-line bg-bg pl-7 pr-3 text-right text-[15px] text-ink tnum focus:border-brand focus:outline-none"
+          aria-label={`${name} cost in dollars`} />
+      </span>
+    </label>
+  )
+}
+
 function IdeaCard({ idea, picked, onPick }) {
   const d = CATEGORIES[idea.category]
   return (
@@ -254,13 +277,13 @@ const OLD = [
     steps: [
       { q: (L) => (L.category === 'baked_goods' ? 'What do you need for one batch?' : 'Do you spend anything per session?'), hint: (L, d) => (L.category === 'baked_goods' ? 'Typical prices are filled in. Edit anything.' : d.perSessionHint), ok: () => true, body: (L) => L.category === 'baked_goods' ? (
         <div className="space-y-3">
-          {L.pricing.ingredients.map((ing, i) => (
-            <div key={ing.id} className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-2.5">
-              <input type="checkbox" checked={ing.on} onChange={(e) => L.patch('pricing', { ingredients: L.pricing.ingredients.map((x, k) => (k === i ? { ...x, on: e.target.checked } : x)) })} className="h-5 w-5 accent-[rgb(var(--brand))]" aria-label={ing.name} />
-              <span className="flex-1 text-[15px]">{ing.name}</span>
-              <span className="text-muted">$</span><input type="number" step="0.1" min="0" value={ing.cost} onChange={(e) => L.patch('pricing', { ingredients: L.pricing.ingredients.map((x, k) => (k === i ? { ...x, cost: +e.target.value } : x)) })} className={`${inputCls} h-10 w-20 tnum`} aria-label={`${ing.name} cost`} />
-            </div>
-          ))}
+          <div className="overflow-hidden rounded-2xl bg-surface">
+            {L.pricing.ingredients.map((ing, i) => (
+              <CostRow key={ing.id} item={ing}
+                onToggle={(on) => L.patch('pricing', { ingredients: L.pricing.ingredients.map((x, k) => (k === i ? { ...x, on } : x)) })}
+                onCost={(cost) => L.patch('pricing', { ingredients: L.pricing.ingredients.map((x, k) => (k === i ? { ...x, cost } : x)) })} />
+            ))}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-[13px] font-medium">How many does one batch make?<input type="number" min="1" value={L.pricing.batchYield} onChange={(e) => L.patch('pricing', { batchYield: +e.target.value || 1 })} className={`${inputCls} mt-1 h-12 tnum`} /></label>
             <label className="text-[13px] font-medium">How many in one order?<input type="number" min="1" value={L.pricing.itemsPerOrder} onChange={(e) => L.patch('pricing', { itemsPerOrder: +e.target.value || 1 })} className={`${inputCls} mt-1 h-12 tnum`} /></label>
@@ -275,13 +298,14 @@ const OLD = [
         return <div><div className="font-display text-5xl font-bold tnum">{m} <span className="text-xl text-muted">min</span></div><input type="range" min="15" max="180" step="5" value={m} onChange={(e) => L.patch('pricing', { minutesPerOrder: +e.target.value })} className="mt-4 w-full accent-[rgb(var(--brand))]" aria-label="Minutes per order" /></div>
       } },
       { q: 'Anything you need to buy once to get started?', ok: () => true, body: (L) => (
-        <div className="space-y-2">{L.pricing.startupItems.map((it, i) => (
-          <div key={it.id} className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-2.5">
-            <input type="checkbox" checked={it.on} onChange={(e) => L.patch('pricing', { startupItems: L.pricing.startupItems.map((x, k) => (k === i ? { ...x, on: e.target.checked } : x)) })} className="h-5 w-5 accent-[rgb(var(--brand))]" aria-label={it.name} />
-            <span className="flex-1 text-[15px]">{it.name}</span><span className="text-muted">$</span>
-            <input type="number" min="0" value={it.cost} onChange={(e) => L.patch('pricing', { startupItems: L.pricing.startupItems.map((x, k) => (k === i ? { ...x, cost: +e.target.value } : x)) })} className={`${inputCls} h-10 w-20 tnum`} aria-label={`${it.name} cost`} />
-          </div>
-        ))}<p className="pt-1 text-[13px] text-muted tnum">Start-up total: {money2(priceModel(L).startup)}</p></div>
+        <div>
+          <div className="overflow-hidden rounded-2xl bg-surface">{L.pricing.startupItems.map((it, i) => (
+            <CostRow key={it.id} item={it}
+              onToggle={(on) => L.patch('pricing', { startupItems: L.pricing.startupItems.map((x, k) => (k === i ? { ...x, on } : x)) })}
+              onCost={(cost) => L.patch('pricing', { startupItems: L.pricing.startupItems.map((x, k) => (k === i ? { ...x, cost } : x)) })} />
+          ))}</div>
+          <p className="mt-3 text-[13px] text-muted tnum">Start-up total: <b className="text-ink">{money2(priceModel(L).startup)}</b></p>
+        </div>
       ) },
       { q: 'What would they pay somewhere else?', hint: 'Here’s what we see near campus. Edit if you know better.', ok: () => true, body: (L, d) => (
         <div className="space-y-3">
