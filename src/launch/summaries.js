@@ -41,7 +41,6 @@ const SUMMARY = {
     (L) => cap(L.listing.hook),
     (L, d) => d.photoOptions.find((p) => p.id === L.listing.photo)?.label,
     (L) => join([...L.listing.includes.filter((x) => x !== 'other'), L.listing.includeOther]),
-    (L) => `${L.listing.faq.length} questions answered`,
     (L) => `${L.listing.availability.length} time slots a week`,
     (L) => L.listing.spot,
     (L) => cap(L.listing.story),

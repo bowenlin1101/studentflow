@@ -259,7 +259,7 @@ function AvailabilityGrid({ L }) {
 
 const checklist = (L, listing) => [
   ['Hero photo chosen', !!L.listing.photo], ['Price clear', listing.price > 0], ['Availability set', L.listing.availability.length > 0],
-  ['Story filled', !!L.listing.story], ['FAQ added', L.listing.faq.length > 0], ['Compliance done', L.listing.complianceOk],
+  ['Story filled', !!L.listing.story], ['Compliance done', L.listing.complianceOk],
 ]
 
 // ---------------------------------------------------------------------------
@@ -674,7 +674,10 @@ const price = {
   onEnter: (L) => { if (L.category && !L.pricing.benchmarkLow) L.patch('pricing', categoryDefaults(L.category)) },
 }
 // No preview while answering: the finished listing appears once, at the end of the stage
-const listing = { ...OLD[4], preview: undefined, canNext: (L) => !!L.listingId }
+const listing = {
+  ...OLD[4], preview: undefined, canNext: (L) => !!L.listingId,
+  steps: OLD[4].steps.filter((st) => st.q !== 'What do people ask before buying?'), // no FAQ question
+}
 
 const reachOut = {
   title: 'Reach out', gets: 'Messages to 10 people', blurb: 'Your listing is live. Now tell 10 people who’d want it.',

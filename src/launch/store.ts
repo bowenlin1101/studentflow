@@ -81,7 +81,7 @@ export const useLaunch = create<LaunchState>()(persist((setState, get) => ({
     }
     if (stage === 2) setState({ pricing: { ...s.pricing, ...(s.pricing.benchmarkLow ? {} : categoryDefaults(cat)), positioning: 'middle', monthlyGoal: 250, bundles: true, price: d.prices.middle } })
     if (stage === 3) setState({ listing: { ...s.listing, hook: d.hookTemplates(d.targets[0].label.toLowerCase())[0], photo: d.photoOptions[0].id, includes: d.includes.slice(0, 3),
-      faq: d.faq.slice(0, 3).map((f) => f.q), availability: [{ day: 'Sun', block: 'afternoon' }, { day: 'Wed', block: 'evening' }, { day: 'Fri', block: 'afternoon' }],
+      faq: [], availability: [{ day: 'Sun', block: 'afternoon' }, { day: 'Wed', block: 'evening' }, { day: 'Fri', block: 'afternoon' }],
       spot: cat === 'fitness' ? 'Western Rec Centre' : cat === 'tutoring' ? 'Weldon Library' : 'UCC Atrium',
       story: generateNow('story', { name: s.student.name, year: s.student.year || '2nd', major: s.student.major || 'Foods & Nutrition', category: cat, passion: s.student.passion }),
       deal: 'ten_off', allergens: cat === 'baked_goods' ? ['wheat', 'dairy', 'eggs'] : [], complianceOk: true, sessionPlace: cat === 'fitness' ? 'Western Rec Centre' : '', moments: ['finals'] } })
