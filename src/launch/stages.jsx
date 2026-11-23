@@ -170,11 +170,17 @@ function AvailabilityGrid({ L }) {
   const toggle = (day, block) => L.patch('listing', { availability: on(day, block) ? av.filter((a) => !(a.day === day && a.block === block)) : [...av, { day, block }] })
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[340px] border-separate border-spacing-1 text-xs">
-        <thead><tr><th />{DAYS.map((d) => <th key={d} className="font-medium text-muted">{d}</th>)}</tr></thead>
+      <table className="w-full table-fixed border-separate border-spacing-1 text-xs sm:border-spacing-1.5">
+        <colgroup><col className="w-[34px] sm:w-[92px]" />{DAYS.map((d) => <col key={d} />)}</colgroup>
+        <thead><tr><th />{DAYS.map((d) => <th key={d} className="pb-1 text-center font-semibold text-muted">{d}</th>)}</tr></thead>
         <tbody>{BLOCKS.map(([b, label]) => (
-          <tr key={b}><td className="pr-1 text-muted">{label}</td>{DAYS.map((d) => (
-            <td key={d}><button type="button" onClick={() => toggle(d, b)} aria-pressed={on(d, b)} aria-label={`${d} ${label}`} className={`h-11 w-full rounded-xl transition ${on(d, b) ? 'bg-brand' : 'bg-surface hover:bg-brandsoft'}`} /></td>
+          <tr key={b}><td className="pr-1 text-[12px] text-muted sm:text-[13px]"><span className="sm:hidden">{{ morning: 'AM', afternoon: 'PM', evening: 'Eve' }[b]}</span><span className="hidden sm:inline">{label}</span></td>{DAYS.map((d) => (
+            <td key={d}>
+              <button type="button" onClick={() => toggle(d, b)} aria-pressed={on(d, b)} aria-label={`${d} ${label}`}
+                className={`flex h-11 w-full items-center justify-center rounded-xl border-2 transition ${on(d, b) ? 'border-brand bg-brand text-white' : 'border-line bg-bg text-transparent hover:border-brand/60 hover:bg-brandsoft/60'}`}>
+                <Check size={16} strokeWidth={3} aria-hidden="true" />
+              </button>
+            </td>
           ))}</tr>
         ))}</tbody>
       </table>
