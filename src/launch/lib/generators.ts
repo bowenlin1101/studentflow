@@ -14,6 +14,7 @@ export interface GenInputs {
   story: { name: string; year: string; major: string; category: Category; passion: string }
   launchPlan: { category: Category; comfort: Comfort; groups: { type: string; name: string }[]; people: string[]; price: number; title: string; link: string }
   checkin: { feeling: Feeling; price: number; category: Category }
+  reflect: ReflectInputs
 }
 export interface GenOutputs {
   ideas: Idea[]
@@ -24,10 +25,12 @@ export interface GenOutputs {
   story: string
   launchPlan: LaunchPlanStep[]
   checkin: { title: string; body: string; action?: string }[]
+  reflect: Reflection
 }
 export type Kind = keyof GenInputs
 
 const T: { [K in Kind]: (i: GenInputs[K]) => GenOutputs[K] } = {
+  reflect: (i) => reflection(i),
   ideas: (i) => {
     const s = (cat: Category, chip: string, style: string) => {
       let fit = 45
@@ -112,3 +115,50 @@ export function verdict(log: { response: Response }[]): { verdict: Verdict; pre:
   const v: Verdict = pre >= 2 || pay + pre >= 4 ? 'go' : log.length >= 3 && no / log.length > 0.6 ? 'rethink' : 'tweak'
   return { verdict: v, pre, pay, interested, no, score }
 }
+
+
+// ---------------------------------------------------------------------------
+// Reflect: what happened after the student messaged 10 people, and what to change.
+export interface ReflectInputs {
+  sent: number; replied: number; interested: number; chats: number; sales: number; views: number
+  price: number; benchmarkLow: number; feeling: Feeling | ''; category: Category
+}
+export interface ReflectTip { title: string; body: string; action?: { label: string; stage: number } }
+export interface Reflection { verdict: 'sold' | 'interest' | 'low'; headline: string; tips: ReflectTip[] }
+
+// Stage numbers the suggestions link back to
+const STAGE = { pick: 1, price: 2, listing: 3, reach: 4, school: 6 }
+
+export function reflection(i: ReflectInputs): Reflection {
+  const verdict: Reflection['verdict'] = i.sales > 0 ? 'sold' : i.interested + i.chats >= 3 ? 'interest' : 'low'
+  const c = CATEGORIES[i.category]
+  const tips: ReflectTip[] = []
+  if (verdict === 'sold') {
+    tips.push({ title: 'Ask for a review and a referral', body: 'Reviews are what make strangers trust a new listing. Send this to your first customers today.' })
+  }
+  if (verdict === 'interest') {
+    if (i.price > c.prices.middle) tips.push({ title: `Try ${'$'}${c.prices.middle} for your first few sales`, body: 'People were interested but didn’t buy. A lower launch price often turns maybes into first orders, and reviews let you raise it later.', action: { label: 'Edit my price', stage: STAGE.price } })
+    tips.push({ title: 'Sharpen your photo and hook', body: `${i.views} people opened your listing but only ${i.chats} started a chat. A clearer photo and a more specific first line usually lift that.`, action: { label: 'Edit my listing', stage: STAGE.listing } })
+    tips.push({ title: 'Follow up with the maybes', body: 'People who said “interested” often just need a nudge with a specific time: “I have a slot Sunday at 2. Want it?”', action: { label: 'Back to my messages', stage: STAGE.reach } })
+  }
+  if (verdict === 'low') {
+    tips.push({ title: 'Try a different group', body: `Only ${i.replied} of ${i.sent} people replied. Message 10 people from a different group, like a club or class that has this problem more often.`, action: { label: 'Message a new group', stage: STAGE.reach } })
+    tips.push({ title: 'Or try your second idea', body: 'Some ideas just don’t land on a given campus. That’s useful to learn in a week instead of a semester.', action: { label: 'Back to my ideas', stage: STAGE.pick } })
+  }
+  if (verdict !== 'low' && i.feeling === 'want_more') {
+    tips.push({ title: 'Pitch a group order', body: c.groupPitch(i.price) })
+    tips.push({ title: 'Open a pre-order drop', body: c.dropPitch })
+  }
+  if (i.feeling === 'happy' || i.feeling === 'want_less') {
+    tips.push({ title: 'Staying small is a win', body: 'If this pace fits around school, keep it. Turn on finals pause so your listing takes a waitlist instead of orders during exams.', action: { label: 'Set up finals pause', stage: STAGE.school } })
+  }
+  const headline = {
+    sold: i.sales === 1 ? 'You made your first sale!' : `You made ${i.sales} sales!`,
+    interest: 'People are interested. Now turn them into buyers.',
+    low: 'Not much interest yet. Here’s what to try.',
+  }[verdict]
+  return { verdict, headline, tips: tips.slice(0, 4) }
+}
+
+export const REVIEW_REQUEST = (name: string, title: string) =>
+  `Hey! Thanks so much for your order. If you liked it, could you leave a quick review on StudentFlow? It really helps other students find me. And if you know anyone who’d want one, send them my way!`

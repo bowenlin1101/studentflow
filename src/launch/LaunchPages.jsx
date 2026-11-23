@@ -8,7 +8,7 @@ import { STAGES, buildListing, isExplore } from './stages'
 import { CATEGORIES } from './lib/categories'
 import { NEXT_LABEL } from './summaries'
 
-const STEP_CTA = ['See my profile', 'See my ideas', 'See my verdict', 'See my price', 'Preview my listing', 'Get my launch plan', 'See my week', 'See my check-in']
+const STEP_CTA = ['See my profile', 'See my ideas', 'See my price', 'Preview my listing', 'Get my messages', 'See my results', 'See my week']
 
 function visibleSteps(def, L) { return def.steps.filter((st) => !(st.skip && st.skip(L))) }
 
@@ -22,7 +22,7 @@ export function useLaunchActions() {
     const d = CATEGORIES[L.category]
     const shop = `${(L.student.name || me.name).split(' ')[0]}’s ${{ baked_goods: 'Bakes', tutoring: 'Tutoring', fitness: 'Coaching' }[d.id]}`
     dispatch({ type: 'publishListing', listing, shop })
-    L.set({ listingId: listing.id }); L.complete(4)
+    L.set({ listingId: listing.id }); L.complete(3)
     toast('Published. Your listing is live in the feed.')
     nav('/market')
   }
@@ -36,7 +36,12 @@ export function DemoBar({ n }) {
   const { me, dispatch, toast } = useStore()
   const nav = useNavigate()
   if (!L.demoBar) return <button onClick={() => L.set({ demoBar: true })} className="fixed z-40 rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-bg shadow-lg" style={{ bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))', right: 'max(16px, env(safe-area-inset-right, 0px))' }}>Demo</button>
-  const fill = () => { if (n == null) return; L.fill(n, me); L.setStep(n, 999); toast(`Filled stage ${n}`) }
+  const fill = () => {
+    if (n == null) return
+    L.fill(n, me); L.setStep(n, 999)
+    if (n === 5 && L.listingId && !L.reflect.simulated) { dispatch({ type: 'simulateWeek', listingId: L.listingId }); L.patch('reflect', { simulated: true }) }
+    toast(`Filled stage ${n}`)
+  }
   const loadMaya = () => { L.reset(); dispatch({ type: 'persona', userId: 'u_maya' }); L.fill(0, { name: 'Maya Rodriguez', year: '2nd', major: 'Foods & Nutrition' }); toast('Loaded Maya, 2nd-year Foods & Nutrition'); nav('/launch/0') }
   const reset = () => { L.reset(); dispatch({ type: 'reset' }); toast('Demo reset'); nav('/launch') }
   return (
@@ -61,7 +66,7 @@ export function LaunchHub() {
   const { s, me } = useStore()
   const nav = useNavigate()
   const allDone = STAGES.every((st) => L.done[st.n])
-  const next = STAGES.find((st) => !L.done[st.n]) ?? STAGES[7]
+  const next = STAGES.find((st) => !L.done[st.n]) ?? STAGES.find((st) => st.title === 'Reflect') // everything done: send them back to Reflect, the monthly check-in
   const started = Object.keys(L.done).length > 0 || Object.keys(L.steps).length > 0
   const live = L.listingId && s.listings.find((l) => l.id === L.listingId)
   const start = () => { if (!L.student.name) L.patch('student', { name: me.name.split(' ')[0], year: me.year || '', major: me.major || '' }); nav('/launch/' + next.n) }
@@ -70,9 +75,9 @@ export function LaunchHub() {
       <div className="mb-10 grid items-end gap-6 md:grid-cols-[1fr_auto]">
         <div>
           <h1 className="font-display text-4xl font-bold leading-tight sm:text-5xl">Turn something you’re good at into a side business</h1>
-          <p className="mt-3 max-w-2xl text-lg text-muted">Seven short stages, one question at a time. Each one ends with something real: an idea, a price, a live listing, your first customers.</p>
+          <p className="mt-3 max-w-2xl text-lg text-muted">Six short stages, one question at a time. Pick an idea, price it, list it, message 10 people, then see what worked.</p>
         </div>
-        <Btn size="lg" onClick={start}>{allDone ? 'Review my check-in' : started ? `Continue: ${next.n}. ${next.title}` : 'Start'} <ArrowRight size={18} /></Btn>
+        <Btn size="lg" onClick={start}>{allDone ? 'See my latest results' : started ? `Continue: ${next.n}. ${next.title}` : 'Start'} <ArrowRight size={18} /></Btn>
       </div>
       {live && (
         <button onClick={() => nav('/listing/' + live.id)} className="mb-8 flex w-full items-center gap-4 rounded-3xl bg-successsoft p-4 text-left">
@@ -136,7 +141,7 @@ function MobileStageBar({ n }) {
   const doneCount = STAGES.filter((st) => L.done[st.n]).length
   return (
     <div className="mb-6 lg:hidden">
-      <div className="flex items-baseline justify-between text-[13px]"><span className="font-semibold">{n === 0 ? 'Welcome' : `Stage ${n} of 7 · ${STAGES[n].title}`}</span><span className="text-muted tnum">{doneCount}/{STAGES.length} done</span></div>
+      <div className="flex items-baseline justify-between text-[13px]"><span className="font-semibold">{n === 0 ? 'Welcome' : `Stage ${n} of ${STAGES.length - 1} · ${STAGES[n].title}`}</span><span className="text-muted tnum">{doneCount}/{STAGES.length} done</span></div>
       <div className="mt-2 flex gap-1">{STAGES.map((st) => <span key={st.n} className={`h-1.5 flex-1 rounded-full ${L.done[st.n] ? 'bg-brand' : st.n === n ? 'bg-brand/40' : 'bg-line'}`} />)}</div>
     </div>
   )
@@ -165,7 +170,7 @@ function Reward({ def }) {
 
 export function StageRunner() {
   const { n: nParam } = useParams()
-  const n = Math.max(0, Math.min(7, +nParam || 0))
+  const n = Math.max(0, Math.min(STAGES.length - 1, +nParam || 0))
   const ctx = useLaunchActions()
   const { L, me, now, go, nav } = ctx
   const def = STAGES[n]
@@ -211,7 +216,7 @@ export function StageRunner() {
   const pct = Math.round((answered / steps.length) * 100)
   const nextStage = () => {
     L.complete(n)
-    if (n === 7) return nav('/launch')
+    if (n === STAGES.length - 1) return nav('/launch')
     if (!L.done[n + 1]) L.setStep(n + 1, 0)
     go(n + 1)
   }
@@ -281,7 +286,9 @@ export function StageRunner() {
           {def.output({ ...ctx, go })}
           <div className="mt-6 flex flex-col items-stretch gap-2 sm:items-end">
             <Btn size="lg" onClick={nextStage} disabled={!canNext} className="sm:min-w-[320px]">{NEXT_LABEL[n]} <ArrowRight size={18} /></Btn>
-            {!canNext && n === 4 && <p className="text-[13px] text-muted sm:text-right">Publish your listing to continue.</p>}
+            {!canNext && n === 3 && <p className="text-[13px] text-muted sm:text-right">Publish your listing to continue.</p>}
+            {!canNext && n === 4 && <p className="text-[13px] text-muted sm:text-right">Mark at least one message as sent to continue.</p>}
+            {!canNext && n === 1 && <p className="text-[13px] text-muted sm:text-right">Pick an idea and who it’s for to continue.</p>}
           </div>
         </div>
       )}

@@ -78,7 +78,7 @@ export default function Marketplace() {
       {mine && (
         <div className="mb-8 flex flex-wrap items-center gap-4 rounded-3xl bg-brand p-5 text-white">
           <div className="min-w-0 flex-1"><div className="font-display text-xl font-bold">You’re live on campus!</div><div className="text-white/85">“{mine.title}” is in New on campus below.</div></div>
-          <button onClick={() => nav('/launch/5')} className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand">Find my first 10 customers</button>
+          <button onClick={() => nav('/launch/4')} className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand">Next: Message 10 people</button>
         </div>
       )}
       <h1 className="mb-1 font-display text-3xl font-bold">Marketplace</h1>

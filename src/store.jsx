@@ -97,6 +97,20 @@ function reducer(s, a) {
         buyerCode: genCode(), sellerCode: genCode(), buyerConfirmed: true, sellerConfirmed: true, outcome: 'completed', completedAt: now, timeline: [{ t: now, text: 'Demo sale: both codes matched.' }] }
       return { ...s, orders: [o, ...s.orders], listings: s.listings.map((x) => (x.id === l.id ? { ...x, sales: x.sales + 1 } : x)) }
     }
+    case 'simulateWeek': {
+      // demo: a first week after messaging 10 people: views, two buyer chats and one sale
+      const l = s.listings.find((x) => x.id === a.listingId)
+      if (!l) return s
+      const s2 = reducer(s, { type: 'simulateSale', listingId: l.id })
+      const chats = [
+        { buyer: 'u_alex', lines: ['Hi! Do you do a box of 12 for Friday?', 'Yes! I can have it ready Friday afternoon at the UCC.'] },
+        { buyer: 'u_emily', lines: ['Are these nut-free?', 'They don’t contain nuts, but my kitchen handles them. I’m testing a nut-free batch soon!'] },
+      ].map((c, i) => ({ id: uid('c'), listingId: l.id, buyerId: c.buyer, sellerId: l.sellerId, messages: [
+        { from: c.buyer, text: c.lines[0], t: now - (2 - i) * H }, { from: l.sellerId, text: c.lines[1], t: now - (2 - i) * H + 600e3 },
+      ] }))
+      return { ...s2, conversations: [...chats, ...s2.conversations],
+        listings: s2.listings.map((x) => (x.id === l.id ? { ...x, views: x.views + 46, impressions: x.impressions + 380 } : x)) }
+    }
     case 'order': {
       return { ...s, orders: s.orders.map((o) => (o.id === a.id ? orderReducer(o, a, now) : o)) }
     }

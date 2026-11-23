@@ -92,3 +92,27 @@ describe('demand verdict', () => {
   it('tweak on interest without money', () => expect(verdict(L('interested', 'interested', 'would_pay', 'not_interested')).verdict).toBe('tweak'))
   it('rethink when mostly not interested', () => expect(verdict(L('not_interested', 'not_interested', 'not_interested', 'interested')).verdict).toBe('rethink'))
 })
+
+
+import { reflection } from './generators'
+describe('reflect verdict', () => {
+  const base = { sent: 10, replied: 7, interested: 3, chats: 2, sales: 0, views: 40, price: 15, benchmarkLow: 18, feeling: 'want_more' as const, category: 'baked_goods' as const }
+  it('sold when there is a sale, and asks for a review first', () => {
+    const r = reflection({ ...base, sales: 1 })
+    expect(r.verdict).toBe('sold')
+    expect(r.tips[0].title).toMatch(/review/i)
+  })
+  it('interest when people engaged but nobody bought', () => {
+    const r = reflection(base)
+    expect(r.verdict).toBe('interest')
+    expect(r.tips.some((t) => t.action?.stage === 3)).toBe(true)
+  })
+  it('suggests a lower launch price when priced above the middle', () => {
+    expect(reflection({ ...base, price: 19 }).tips[0].action?.stage).toBe(2)
+  })
+  it('low when hardly anyone engaged, and points to a new group or idea', () => {
+    const r = reflection({ ...base, replied: 2, interested: 1, chats: 0 })
+    expect(r.verdict).toBe('low')
+    expect(r.tips.map((t) => t.action?.stage)).toEqual([4, 1])
+  })
+})

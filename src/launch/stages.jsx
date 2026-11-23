@@ -3,12 +3,12 @@ import { Plus, Trash2, BadgeCheck, Star, Clock, MapPin, AlertTriangle, PartyPopp
 import { CATEGORIES, DAYS, photoFor } from './lib/categories'
 import { CAMPUS, FEES, SUBSCRIPTION } from './lib/config'
 import { plan } from './lib/pricing'
-import { generateNow, verdict } from './lib/generators'
+import { generateNow, verdict, REVIEW_REQUEST } from './lib/generators'
 import { SURVEY, MOMENTS, CAMPUS_EVENTS, EXAM_WEEKS, MONTH_ONE, SAMPLE_CONTACTS } from './lib/seed'
 import { categoryDefaults } from './store'
 import { Choices, TextAnswer, CopyBox, QR, OutputCard, Stat, Nudge } from './ui'
 import { Btn, inputCls } from '../ui'
-import { money, money2 } from '../store'
+import { money, money2, useStore } from '../store'
 
 const opts = (...pairs) => pairs.map(([id, label, hint]) => ({ id, label, hint }))
 const HOURS = { '1-2': 1.5, '3-5': 4, '6-10': 8, '10+': 12 }
@@ -165,7 +165,7 @@ const checklist = (L, listing) => [
 ]
 
 // ---------------------------------------------------------------------------
-export const STAGES = [
+const OLD = [
   {
     n: 0, title: 'Welcome', gets: 'Your profile', blurb: 'Tell us who you are.',
     steps: [
@@ -479,3 +479,185 @@ export const STAGES = [
     next: 'Back to overview',
   },
 ]
+
+// ---------------------------------------------------------------------------
+// The flow: list first, then message 10 people, then reflect on what happened.
+// 0 Welcome · 1 Pick · 2 Price · 3 Listing · 4 Reach out · 5 Reflect · 6 Run it with school
+
+function CopyButton({ text }) {
+  const [done, setDone] = useState(false)
+  const copy = () => { try { navigator.clipboard.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1400) }, () => {}) } catch {} }
+  return <button type="button" onClick={copy} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold text-brand hover:bg-brandsoft">{done ? <><Check size={13} /> Copied</> : 'Copy message'}</button>
+}
+
+const targetOk = (L) => { const d = L.category && CATEGORIES[L.category]; return !!d && (L.validation.target === 'other' ? !!L.validation.targetOther.trim() : d.targets.some((t) => t.id === L.validation.target)) }
+const targetLabel = (L, d) => (L.validation.target === 'students_in_a_specific_class' && L.validation.targetClass ? `${L.validation.targetClass} students` : labelOf(d.targets, L.validation.target, L.validation.targetOther) || 'students')
+const people = (L) => L.launch.people.map((p) => p.trim()).filter(Boolean)
+const linkFor = (L) => `studentflow.ca/l/${(L.listingId || 'your-listing').replace('l_', '')}`
+
+const welcome = OLD[0]
+
+const pick = {
+  ...OLD[1], gets: 'Your idea and first customers', blurb: 'Find an idea that fits your skills, and who it’s for.',
+  output: (ctx) => {
+    const { L } = ctx
+    const d = L.category && CATEGORIES[L.category]
+    return (
+      <div className="space-y-4">
+        {OLD[1].output(ctx)}
+        {d && (
+          <OutputCard eyebrow="Your first customers" title="Who exactly is this for?">
+            <p className="-mt-2 mb-4 text-[14px] text-muted">Pick one group. Your listing and your first 10 messages will speak to them.</p>
+            <Choices name="Target customer" options={d.targets} value={L.validation.target} onChange={(v) => L.patch('validation', { target: v })} other={L.validation.targetOther} onOther={(v) => L.patch('validation', { targetOther: v })} />
+            {L.validation.target === 'students_in_a_specific_class' && <input value={L.validation.targetClass} onChange={(e) => L.patch('validation', { targetClass: e.target.value })} placeholder="Which class? e.g. CHEM 1301" className={`${inputCls} mt-3 h-12`} aria-label="Class" />}
+          </OutputCard>
+        )}
+      </div>
+    )
+  },
+  canNext: (L) => !!L.ideaId && targetOk(L),
+}
+
+const price = OLD[3]
+const listing = { ...OLD[4], canNext: (L) => !!L.listingId }
+
+const reachOut = {
+  title: 'Reach out', gets: 'Messages to 10 people', blurb: 'Your listing is live. Now tell 10 people who’d want it.',
+  steps: [
+    OLD[5].steps[0],
+    { q: 'Name 10 people who fit your customer.', hint: 'Friends, floor-mates, classmates, people in your clubs. First names are fine.', ok: (L) => people(L).length > 0, body: (L) => (
+      <div className="grid gap-2 sm:grid-cols-2">{L.launch.people.map((p, i) => (
+        <input key={i} value={p} onChange={(e) => L.patch('launch', { people: L.launch.people.map((x, k) => (k === i ? e.target.value : x)) })} placeholder={`Person ${i + 1}`} className={`${inputCls} h-12`} aria-label={`Person ${i + 1}`} />
+      ))}</div>
+    ) },
+    OLD[5].steps[2],
+  ],
+  output: ({ L, s }) => {
+    const d = CATEGORIES[L.category]
+    const live = s.listings.find((l) => l.id === L.listingId)
+    const link = linkFor(L)
+    const ask = { baked_goods: 'Want a box this week?', tutoring: 'Want to book a session?', fitness: 'Want to try a session?' }[L.category]
+    const deal = L.listing.deal === 'ten_off' ? 'My first 5 customers get 10% off. ' : L.listing.deal === 'free_extra' ? 'My first 5 customers get a free extra. ' : ''
+    const msg = (name) => `Hey ${name}! I just launched something on StudentFlow: “${live ? live.title : L.listing.hook}”. ${deal}${ask} ${link}`
+    const names = people(L)
+    const sentCount = names.filter((n) => L.launch.sent[L.launch.people.indexOf(n)]).length
+    const toggle = (n) => { const i = L.launch.people.indexOf(n); L.patch('launch', { sent: L.launch.sent.map((x, k) => (k === i ? !x : x)) }) }
+    const group = L.launch.groups[0] && (L.launch.groupNames[L.launch.groups[0]] || L.launch.groups[0])
+    return (
+      <OutputCard eyebrow="Your outreach" title={`Message ${names.length} people this week`}>
+        <div className="mb-6 flex flex-wrap items-center gap-5 rounded-2xl bg-bg p-4">
+          <QR text={'https://' + link} size={96} />
+          <div className="min-w-0 flex-1"><div className="text-[13px] text-muted">Your share link</div><div className="truncate font-medium">{link}</div><p className="mt-1 text-[13px] text-muted">Put the QR code on a flyer or your boxes.</p></div>
+        </div>
+        <div className="mb-3 flex items-baseline justify-between"><div className="font-medium">Send one at a time. Personal beats a group post.</div><div className="text-[13px] font-semibold text-accent tnum">{sentCount} of {names.length} sent</div></div>
+        <ul className="grid gap-2">{names.map((n) => {
+          const sent = L.launch.sent[L.launch.people.indexOf(n)]
+          return (
+            <li key={n} className={`flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3 ${sent ? 'bg-successsoft' : 'bg-bg'}`}>
+              <span className="min-w-0 flex-1 font-medium">{n}</span>
+              <CopyButton text={msg(n)} />
+              <button type="button" onClick={() => toggle(n)} aria-pressed={!!sent} className={`rounded-full px-3 py-1 text-[12px] font-semibold ${sent ? 'bg-success text-white' : 'bg-surface text-ink'}`}>{sent ? 'Sent ✓' : 'Mark sent'}</button>
+            </li>
+          )
+        })}</ul>
+        <div className="mt-5"><div className="mb-2 text-[13px] font-semibold">The message</div><CopyBox text={msg(names[0] || '[name]')} label="Copy message" /></div>
+        {L.launch.comfort !== 'not_at_all' && group && <div className="mt-4"><div className="mb-2 text-[13px] font-semibold">For {group}</div><CopyBox text={d.groupPitch(live?.price || priceModel(L).price)} /></div>}
+        <p className="mt-5 text-[13px] text-muted">Give it about a week, then come back to reflect on what happened.</p>
+      </OutputCard>
+    )
+  },
+  canNext: (L) => L.launch.sent.some(Boolean),
+}
+
+const RESP = [['no_reply', 'No reply'], ['not_interested', 'Not interested'], ['interested', 'Interested'], ['chatted', 'Chatted'], ['bought', 'Bought']]
+function ResponseLog({ L }) {
+  const { dispatch, toast } = useStore()
+  const names = people(L)
+  const set = (n, r) => L.patch('reflect', { responses: { ...L.reflect.responses, [n]: r } })
+  const simulate = () => {
+    L.fill(5, { name: L.student.name })
+    if (L.listingId && !L.reflect.simulated) { dispatch({ type: 'simulateWeek', listingId: L.listingId }); L.patch('reflect', { simulated: true }) }
+    toast('Demo: one week later')
+  }
+  return (
+    <div className="space-y-3">
+      {!names.length && <p className="text-muted">Add the people you messaged in Reach out first.</p>}
+      {names.map((n) => (
+        <div key={n} className="rounded-2xl bg-bg p-3">
+          <div className="mb-2 font-medium">{n}</div>
+          <div className="flex flex-wrap gap-1.5">{RESP.map(([id, label]) => (
+            <button key={id} type="button" onClick={() => set(n, id)} aria-pressed={L.reflect.responses[n] === id} className={`rounded-full px-3 py-1.5 text-[13px] font-medium ${L.reflect.responses[n] === id ? (id === 'bought' ? 'bg-success text-white' : 'bg-ink text-bg') : 'bg-surface'}`}>{label}</button>
+          ))}</div>
+        </div>
+      ))}
+      {!L.reflect.simulated && L.listingId && <Btn type="button" variant="soft" size="sm" onClick={simulate}>Demo: simulate my first week</Btn>}
+    </div>
+  )
+}
+
+export function reflectNumbers(L, s, me) {
+  const names = people(L)
+  const r = names.map((n) => L.reflect.responses[n])
+  const live = s.listings.find((l) => l.id === L.listingId)
+  return {
+    sent: names.filter((n) => L.launch.sent[L.launch.people.indexOf(n)]).length || names.length,
+    replied: r.filter((x) => x && x !== 'no_reply').length,
+    interested: r.filter((x) => x === 'interested' || x === 'chatted' || x === 'bought').length,
+    chats: s.conversations.filter((c) => c.listingId === L.listingId).length,
+    sales: s.orders.filter((o) => o.sellerId === me.id && o.listingId === L.listingId && o.outcome === 'completed').length,
+    views: live?.views || 0,
+  }
+}
+
+const reflect = {
+  title: 'Reflect', gets: 'Your results and what to change', blurb: 'A week later: what happened, and what to try next. Come back every month.',
+  steps: [
+    { q: 'How did each person respond?', hint: 'Tap what happened, including anyone who didn’t reply.', ok: (L) => Object.keys(L.reflect.responses).length > 0, body: (L) => <ResponseLog L={L} /> },
+    { q: 'How do you feel about it so far?', ok: (L) => !!L.checkin.feeling, body: (L) => <Choices name="Feeling" options={opts(['want_more', 'Want more customers'], ['happy', 'Happy as is'], ['want_less', 'Want less'])} value={L.checkin.feeling} onChange={(v) => L.patch('checkin', { feeling: v })} /> },
+  ],
+  output: ({ L, s, me, go, simulateSale }) => {
+    const num = reflectNumbers(L, s, me)
+    const { price } = priceModel(L)
+    const live = s.listings.find((l) => l.id === L.listingId)
+    const out = generateNow('reflect', { ...num, price, benchmarkLow: L.pricing.benchmarkLow, feeling: L.checkin.feeling, category: L.category })
+    const funnel = [['Messaged', num.sent], ['Replied', num.replied], ['Chatted', num.chats], ['Bought', num.sales]]
+    const top = Math.max(...funnel.map((f) => f[1]), 1)
+    const totalSales = s.orders.filter((o) => o.sellerId === me.id && o.outcome === 'completed').length
+    return (
+      <OutputCard eyebrow="Your first week" title={out.headline}>
+        <div className="space-y-2.5">{funnel.map(([k, v], i) => (
+          <div key={k} className="grid grid-cols-[130px_1fr_40px] items-center gap-3 text-[14px] sm:grid-cols-[170px_1fr_48px]">
+            <span className="text-muted">{k}</span>
+            <span className="h-3 overflow-hidden rounded-full bg-bg"><span className={`block h-full rounded-full ${i === 3 && v > 0 ? 'bg-success' : 'bg-brand'}`} style={{ width: `${Math.max(2, (v / top) * 100)}%`, opacity: 1 - i * 0.12 }} /></span>
+            <span className="text-right font-semibold tnum">{v}</span>
+          </div>
+        ))}</div>
+        <p className="mt-3 text-[13px] text-muted tnum">Your listing was opened {num.views} times this week, including people who found it in the feed.</p>
+        <div className="mt-7 grid gap-3 md:grid-cols-2">{out.tips.map((t) => (
+          <div key={t.title} className="rounded-2xl bg-bg p-5">
+            <div className="font-display text-lg font-bold">{t.title}</div>
+            <p className="mt-1 text-[14px] text-muted">{t.body}</p>
+            {t.action && <Btn size="sm" variant="outline" className="mt-3" onClick={() => go(t.action.stage)}>{t.action.label}</Btn>}
+          </div>
+        ))}</div>
+        {out.verdict === 'sold' && <div className="mt-4"><div className="mb-2 text-[13px] font-semibold">Review request</div><CopyBox text={REVIEW_REQUEST(L.student.name, live?.title || 'my listing')} label="Copy review request" /></div>}
+        <div className={`mt-6 rounded-2xl p-5 ${totalSales >= FEES.trialEndsAfterSales ? 'bg-successsoft' : 'bg-accentsoft'}`}>
+          {totalSales >= FEES.trialEndsAfterSales ? (
+            <div className="flex items-start gap-3"><PartyPopper size={26} className="shrink-0 text-accent" /><div><div className="font-display text-lg font-bold">{FEES.trialEndsAfterSales} sales. You’re officially in business!</div><p className="mt-1 text-[14px]">Your tools stay free for at least 30 days from when you listed; after that it’s ${SUBSCRIPTION.monthly}/month.</p></div></div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-baseline justify-between gap-2"><div className="font-medium tnum">{totalSales} of {FEES.trialEndsAfterSales} sales</div><div className="text-[13px] text-muted">Your tools are free until your first {FEES.trialEndsAfterSales} sales.</div></div>
+              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-surface"><div className="h-full rounded-full bg-accent transition-all" style={{ width: `${(totalSales / FEES.trialEndsAfterSales) * 100}%` }} /></div>
+              {live && <Btn size="sm" variant="outline" className="mt-4" onClick={simulateSale}>Demo: simulate a sale</Btn>}
+            </>
+          )}
+        </div>
+        <p className="mt-5 text-[13px] text-muted">Come back to Reflect each month. Your numbers update as you sell.</p>
+      </OutputCard>
+    )
+  },
+}
+
+const school = OLD[6]
+
+export const STAGES = [welcome, pick, price, listing, reachOut, reflect, school].map((st, n) => ({ ...st, n }))

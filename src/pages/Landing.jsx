@@ -103,7 +103,7 @@ export default function Landing() {
       <section className="gutter mx-auto max-w-[1150px] pb-20">
         <div className="grid gap-8 md:grid-cols-3">
           {[
-            [<TopicImage key="t" topic="launch" label="Launch" className="aspect-[16/10] rounded-3xl" />, 'Launch', '7 short stages take you from an idea to a price, a listing and your first 10 customers.'],
+            [<TopicImage key="t" topic="launch" label="Launch" className="aspect-[16/10] rounded-3xl" />, 'Launch', 'Pick an idea, price it, list it, message 10 people, then see what worked and improve.'],
             [<ListingArt key="l" listing={listing('l_lift')} className="aspect-[16/10] rounded-3xl" />, 'Sell', 'Chat with buyers, swap codes at hand-off, and track every sale and payout.'],
             [<ListingArt key="b" listing={listing('l_cookies')} className="aspect-[16/10] rounded-3xl" />, 'Buy', 'Tutoring, workouts and baked goods from verified Western students.'],
           ].map(([img, t, d]) => (
