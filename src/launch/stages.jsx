@@ -55,7 +55,7 @@ function ideasFor(L) {
 }
 
 /** One cost line: tick to include, name with its amount underneath, and a compact price field. */
-function CostRow({ item, onToggle, onCost }) {
+function CostRow({ item, onToggle, onCost, onRemove }) {
   const m = item.name.match(/^(.*?)\s*\((.*)\)$/)
   const name = m ? m[1] : item.name
   const qty = m ? m[2] : ''
@@ -73,7 +73,40 @@ function CostRow({ item, onToggle, onCost }) {
           className="sf-num h-11 w-full rounded-xl border border-line bg-bg pl-7 pr-3 text-right text-[15px] text-ink tnum focus:border-brand focus:outline-none"
           aria-label={`${name} cost in dollars`} />
       </span>
+      {onRemove && <button type="button" onClick={(e) => { e.preventDefault(); onRemove() }} className="-mr-1 shrink-0 rounded-full p-1.5 text-muted hover:bg-dangersoft hover:text-danger" aria-label={`Remove ${name}`}><Trash2 size={15} /></button>}
     </label>
+  )
+}
+
+/** Inline form for adding a cost line that isn't in the list. */
+function AddCostRow({ label, namePlaceholder, qtyPlaceholder, onAdd }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [qty, setQty] = useState('')
+  const [cost, setCost] = useState('')
+  const add = (e) => {
+    e.preventDefault()
+    if (!name.trim()) return
+    onAdd({ id: 'custom-' + Date.now(), name: qty.trim() ? `${name.trim()} (${qty.trim()})` : name.trim(), cost: Math.max(0, +cost || 0), on: true, custom: true })
+    setName(''); setQty(''); setCost('')
+  }
+  if (!open) return (
+    <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center gap-2 px-4 py-3 text-left text-[14px] font-semibold text-brand hover:bg-brandsoft/40">
+      <Plus size={16} /> {label}
+    </button>
+  )
+  return (
+    <form onSubmit={add} className="flex flex-wrap items-center gap-2 bg-brandsoft/30 px-4 py-3">
+      <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={namePlaceholder} aria-label="Name" className={`${inputCls} h-11 min-w-0 flex-[2_1_140px]`} />
+      {qtyPlaceholder && <input value={qty} onChange={(e) => setQty(e.target.value)} placeholder={qtyPlaceholder} aria-label="Amount (optional)" className={`${inputCls} h-11 min-w-0 flex-[1_1_90px]`} />}
+      <span className="relative w-24 shrink-0">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-muted">$</span>
+        <input type="number" inputMode="decimal" step="0.05" min="0" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0.00" aria-label="Cost in dollars"
+          className="sf-num h-11 w-full rounded-xl border border-line bg-surface pl-7 pr-3 text-right text-[15px] text-ink tnum focus:border-brand focus:outline-none" />
+      </span>
+      <Btn type="submit" size="sm" disabled={!name.trim()}>Add</Btn>
+      <button type="button" onClick={() => setOpen(false)} className="text-[13px] font-medium text-muted hover:text-ink">Done</button>
+    </form>
   )
 }
 
@@ -287,8 +320,11 @@ const OLD = [
             {L.pricing.ingredients.map((ing, i) => (
               <CostRow key={ing.id} item={ing}
                 onToggle={(on) => L.patch('pricing', { ingredients: L.pricing.ingredients.map((x, k) => (k === i ? { ...x, on } : x)) })}
-                onCost={(cost) => L.patch('pricing', { ingredients: L.pricing.ingredients.map((x, k) => (k === i ? { ...x, cost } : x)) })} />
+                onCost={(cost) => L.patch('pricing', { ingredients: L.pricing.ingredients.map((x, k) => (k === i ? { ...x, cost } : x)) })}
+                onRemove={ing.custom ? () => L.patch('pricing', { ingredients: L.pricing.ingredients.filter((_, k) => k !== i) }) : undefined} />
             ))}
+            <AddCostRow label="Add an ingredient" namePlaceholder="e.g. Vanilla" qtyPlaceholder="e.g. 1 tsp"
+              onAdd={(item) => L.patch('pricing', { ingredients: [...L.pricing.ingredients, item] })} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-[13px] font-medium">How many does one batch make?<input type="number" min="1" value={L.pricing.batchYield} onChange={(e) => L.patch('pricing', { batchYield: +e.target.value || 1 })} className={`${inputCls} mt-1 h-12 tnum`} /></label>
@@ -308,8 +344,12 @@ const OLD = [
           <div className="overflow-hidden rounded-2xl bg-surface">{L.pricing.startupItems.map((it, i) => (
             <CostRow key={it.id} item={it}
               onToggle={(on) => L.patch('pricing', { startupItems: L.pricing.startupItems.map((x, k) => (k === i ? { ...x, on } : x)) })}
-              onCost={(cost) => L.patch('pricing', { startupItems: L.pricing.startupItems.map((x, k) => (k === i ? { ...x, cost } : x)) })} />
-          ))}</div>
+              onCost={(cost) => L.patch('pricing', { startupItems: L.pricing.startupItems.map((x, k) => (k === i ? { ...x, cost } : x)) })}
+              onRemove={it.custom ? () => L.patch('pricing', { startupItems: L.pricing.startupItems.filter((_, k) => k !== i) }) : undefined} />
+          ))}
+            <AddCostRow label="Add something else" namePlaceholder="e.g. Cooling rack" qtyPlaceholder=""
+              onAdd={(item) => L.patch('pricing', { startupItems: [...L.pricing.startupItems, item] })} />
+          </div>
           <p className="mt-3 text-[13px] text-muted tnum">Start-up total: <b className="text-ink">{money2(priceModel(L).startup)}</b></p>
         </div>
       ) },
