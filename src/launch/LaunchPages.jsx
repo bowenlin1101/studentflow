@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useNavigate, useParams, NavLink } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, X, Wand2, RotateCcw, User } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, X, Wand2, RotateCcw, User, Trophy } from 'lucide-react'
 import { useStore } from '../store'
 import { Btn } from '../ui'
 import { useLaunch } from './store'
 import { STAGES, buildListing, isExplore } from './stages'
 import { CATEGORIES } from './lib/categories'
+import { NEXT_LABEL } from './summaries'
 
 const STEP_CTA = ['See my profile', 'See my ideas', 'See my verdict', 'See my price', 'Preview my listing', 'Get my launch plan', 'See my week', 'See my check-in']
 
@@ -28,27 +29,6 @@ export function useLaunchActions() {
   const simulateSale = () => { if (L.listingId) { dispatch({ type: 'simulateSale', listingId: L.listingId }); toast('Demo: a sale completed') } }
   const pause = (on) => { L.patch('schedule', { paused: on }); if (L.listingId) dispatch({ type: 'pauseListing', id: L.listingId, paused: on }); toast(on ? 'Paused: your listing now takes a waitlist' : 'Back to taking orders') }
   return { L, s, me, now, dispatch, toast, nav, go, publish, simulateSale, pause, published: !!L.listingId && s.listings.some((l) => l.id === L.listingId) }
-}
-
-function Progress({ n }) {
-  const L = useLaunch()
-  return (
-    <ol className="noscrollbar mb-8 flex items-center gap-1.5 overflow-x-auto pb-1" aria-label="Stages">
-      {STAGES.map((st) => {
-        const cur = st.n === n, done = L.done[st.n]
-        return (
-          <li key={st.n} className="flex shrink-0 items-center gap-1.5">
-            <NavLink to={'/launch/' + st.n} aria-current={cur ? 'step' : undefined} title={st.title}
-              className={`flex h-9 min-w-[36px] items-center justify-center gap-1.5 rounded-full px-2.5 text-[13px] font-bold transition ${cur ? 'bg-brand text-white' : done ? 'bg-brandsoft text-brand' : 'bg-surface text-muted'}`}>
-              {done && !cur ? <Check size={14} strokeWidth={3} /> : st.n === 0 ? 'Hi' : st.n}
-              {cur && <span className="hidden font-medium sm:inline">{st.title}</span>}
-            </NavLink>
-            {st.n < 7 && <span className={`h-0.5 w-3 rounded ${done ? 'bg-brand' : 'bg-line'}`} />}
-          </li>
-        )
-      })}
-    </ol>
-  )
 }
 
 export function DemoBar({ n }) {
@@ -122,6 +102,67 @@ export function LaunchHub() {
   )
 }
 
+function StageRail({ n }) {
+  const L = useLaunch()
+  const doneCount = STAGES.filter((st) => L.done[st.n]).length
+  return (
+    <nav aria-label="Stages" className="hidden lg:block">
+      <div className="sticky top-24">
+        <div className="mb-4 text-[13px] text-muted tnum">{doneCount} of {STAGES.length} stages done</div>
+        <ol className="relative">
+          {STAGES.map((st, i) => {
+            const cur = st.n === n, done = L.done[st.n]
+            return (
+              <li key={st.n} className="relative pb-5 pl-11">
+                {i < STAGES.length - 1 && <span className={`absolute left-[15px] top-8 h-[calc(100%-24px)] w-0.5 rounded ${done ? 'bg-brand' : 'bg-line'}`} />}
+                <NavLink to={'/launch/' + st.n} aria-current={cur ? 'step' : undefined} className="group block">
+                  <span className={`absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-bold transition ${cur ? 'bg-brand text-white ring-4 ring-brandsoft' : done ? 'bg-brand text-white' : 'bg-surface text-muted'}`}>
+                    {done && !cur ? <Check size={15} strokeWidth={3} /> : st.n === 0 ? 'Hi' : st.n}
+                  </span>
+                  <span className={`block pt-1 text-[14px] font-semibold leading-tight ${cur ? 'text-ink' : 'text-muted group-hover:text-ink'}`}>{st.title}</span>
+                  {cur && <span className="mt-0.5 block text-[12px] text-muted">{st.gets}</span>}
+                </NavLink>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+    </nav>
+  )
+}
+
+function MobileStageBar({ n }) {
+  const L = useLaunch()
+  const doneCount = STAGES.filter((st) => L.done[st.n]).length
+  return (
+    <div className="mb-6 lg:hidden">
+      <div className="flex items-baseline justify-between text-[13px]"><span className="font-semibold">{n === 0 ? 'Welcome' : `Stage ${n} of 7 · ${STAGES[n].title}`}</span><span className="text-muted tnum">{doneCount}/{STAGES.length} done</span></div>
+      <div className="mt-2 flex gap-1">{STAGES.map((st) => <span key={st.n} className={`h-1.5 flex-1 rounded-full ${L.done[st.n] ? 'bg-brand' : st.n === n ? 'bg-brand/40' : 'bg-line'}`} />)}</div>
+    </div>
+  )
+}
+
+function Reward({ def }) {
+  const pieces = Array.from({ length: 14 }, (_, i) => {
+    const a = (i / 14) * Math.PI * 2
+    return { x: Math.cos(a) * (70 + (i % 3) * 18), y: Math.sin(a) * (60 + (i % 2) * 22), c: ['#3f54e8', '#ff8533', '#22a06b', '#f5b400'][i % 4], r: i * 37 }
+  })
+  return (
+    <div className="relative flex flex-col items-center py-6 text-center" role="status">
+      <div className="relative">
+        {pieces.map((p, i) => (
+          <span key={i} aria-hidden="true" className="sf-confetti absolute left-1/2 top-1/2 h-2.5 w-1.5 rounded-sm" style={{ background: p.c, '--x': p.x + 'px', '--y': p.y + 'px', '--r': p.r + 'deg' }} />
+        ))}
+        <div className="sf-badge flex h-20 w-20 items-center justify-center rounded-full bg-accent text-white shadow-lg ring-8 ring-accentsoft">
+          <Trophy size={34} strokeWidth={2} />
+        </div>
+      </div>
+      <div className="mt-5 font-display text-2xl font-bold">{def.n === 0 ? 'You’re set up!' : `${def.title} complete!`}</div>
+      <div className="mt-1 text-muted">You unlocked: <b className="text-ink">{def.gets}</b></div>
+    </div>
+  )
+}
+
 export function StageRunner() {
   const { n: nParam } = useParams()
   const n = Math.max(0, Math.min(7, +nParam || 0))
@@ -132,22 +173,42 @@ export function StageRunner() {
   const idx = Math.min(L.steps[n] ?? 0, steps.length)
   const atOutput = idx >= steps.length
   const d = L.category ? CATEGORIES[L.category] : null
-  const [, force] = useState(0)
-  useEffect(() => { window.scrollTo(0, 0) }, [n, idx])
+  const focusRef = useRef(null)
+  const first = useRef(true)
+  useEffect(() => { window.scrollTo(0, 0); first.current = true }, [n])
+  useEffect(() => {
+    if (first.current) { first.current = false; if (!atOutput) return }
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    focusRef.current?.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' })
+  }, [idx, n, atOutput])
   useEffect(() => { if (atOutput && def.onEnterOutput) def.onEnterOutput(L) }, [atOutput, n]) // eslint-disable-line
 
-  if (n >= 2 && !L.category) return (
-    <div className="mx-auto max-w-xl py-16 text-center">
-      <Progress n={n} />
-      <h1 className="font-display text-3xl font-bold">Pick an idea first</h1>
-      <p className="mt-2 text-muted">This stage is tailored to your idea, so start with stage 1.</p>
-      <Btn className="mt-6" onClick={() => go(1)}>Go to Pick</Btn>
+  const shell = (main) => (
+    <div className="mx-auto grid max-w-6xl gap-10 pb-28 lg:grid-cols-[200px_1fr]">
+      <StageRail n={n} />
+      <div className="min-w-0">
+        <div className="mb-3 flex items-center justify-between">
+          <button onClick={() => nav('/launch')} className="text-[13px] font-medium text-muted hover:text-ink">All stages</button>
+          {isExplore(L) && <span className="rounded-full bg-brandsoft px-2.5 py-0.5 text-[12px] font-semibold text-brand">Explore mode</span>}
+        </div>
+        <MobileStageBar n={n} />
+        {main}
+      </div>
       <DemoBar n={n} />
     </div>
   )
 
-  const step = steps[idx]
+  if (n >= 2 && !L.category) return shell(
+    <div className="py-10">
+      <h1 className="font-display text-3xl font-bold">Pick an idea first</h1>
+      <p className="mt-2 text-muted">This stage is tailored to your idea, so start with Pick.</p>
+      <Btn className="mt-6" onClick={() => go(1)}>Go to Pick</Btn>
+    </div>
+  )
+
   const resolve = (v) => (typeof v === 'function' ? v(L, d) : v)
+  const answered = Math.min(idx, steps.length)
+  const pct = Math.round((answered / steps.length) * 100)
   const nextStage = () => {
     L.complete(n)
     if (n === 7) return nav('/launch')
@@ -157,38 +218,69 @@ export function StageRunner() {
   const canNext = def.canNext ? def.canNext(L) : true
   const preview = !atOutput && def.preview ? def.preview(L, me, now) : null
 
-  return (
-    <div className="mx-auto max-w-5xl pb-28">
-      <div className="mb-2 flex items-center justify-between">
-        <button onClick={() => nav('/launch')} className="text-[13px] font-medium text-muted hover:text-ink">All stages</button>
-        {isExplore(L) && <span className="rounded-full bg-brandsoft px-2.5 py-0.5 text-[12px] font-semibold text-brand">Explore mode</span>}
-      </div>
-      <Progress n={n} />
-      {atOutput ? (
-        <div>
-          {def.output({ ...ctx, go })}
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-            <button onClick={() => L.setStep(n, steps.length - 1)} className="inline-flex items-center gap-1.5 text-[14px] font-medium text-muted hover:text-ink"><ArrowLeft size={16} /> Change answers</button>
-            <Btn size="lg" onClick={nextStage} disabled={!canNext}>{def.next} <ArrowRight size={18} /></Btn>
+  return shell(
+    <>
+      <header>
+        <div className="text-[13px] font-semibold text-accent">{n === 0 ? 'Welcome' : `Stage ${n}`}</div>
+        <h1 className="mt-1 font-display text-[32px] font-bold leading-tight sm:text-[40px]">{def.title}</h1>
+        <p className="mt-1 text-muted">{def.blurb}</p>
+        <div className="mt-5 flex items-center gap-3">
+          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface" role="progressbar" aria-valuenow={answered} aria-valuemin={0} aria-valuemax={steps.length} aria-label="Questions answered">
+            <div className="h-full rounded-full bg-gradient-to-r from-brand to-accent transition-all duration-500" style={{ width: pct + '%' }} />
           </div>
-          {!canNext && n === 4 && <p className="mt-2 text-right text-[13px] text-muted">Publish your listing to continue.</p>}
+          <span className="text-[13px] font-semibold tnum">{answered}/{steps.length}</span>
         </div>
-      ) : (
-        <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
-          <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-accent tnum">{def.title} · Question {idx + 1} of {steps.length}</div>
-            <h1 className="mt-2 font-display text-[28px] font-bold leading-tight sm:text-[34px]">{resolve(step.q)}</h1>
-            {step.hint && <p className="mt-2 text-muted">{resolve(step.hint)}</p>}
-            <div className="mt-6" key={n + '-' + idx}>{step.body(L, d)}</div>
-            <div className="mt-8 flex items-center justify-between gap-3">
-              <button onClick={() => (idx === 0 ? (n === 0 ? nav('/launch') : go(n - 1)) : L.setStep(n, idx - 1))} className="inline-flex items-center gap-1.5 text-[14px] font-medium text-muted hover:text-ink"><ArrowLeft size={16} /> Back</button>
-              <Btn size="lg" disabled={!step.ok(L)} onClick={() => { L.setStep(n, idx + 1); force((x) => x + 1) }}>{idx === steps.length - 1 ? STEP_CTA[n] : 'Next'} <ArrowRight size={18} /></Btn>
-            </div>
+      </header>
+
+      {preview && <aside className="mt-6 rounded-3xl bg-surface p-5" aria-label="Live preview">{preview}</aside>}
+
+      <ol className="relative mt-8">
+        {steps.map((step, i) => {
+          const done = i < idx, cur = i === idx
+          const answer = done && step.a ? step.a(L, d) : null
+          return (
+            <li key={i} ref={cur ? focusRef : undefined} className="relative scroll-mt-36 pb-6 pl-12">
+              <span className={`absolute left-[15px] top-9 h-[calc(100%-28px)] w-0.5 rounded ${done ? 'bg-brand' : 'bg-line'}`} />
+              <span className={`absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-bold transition ${done ? 'bg-brand text-white' : cur ? 'bg-surface text-brand ring-2 ring-brand' : 'bg-surface text-muted'}`}>
+                {done ? <Check size={15} strokeWidth={3} /> : i + 1}
+              </span>
+              {done ? (
+                <button onClick={() => L.setStep(n, i)} className="group block w-full text-left">
+                  <span className="block pt-1 text-[13px] text-muted">{resolve(step.q)}</span>
+                  <span className="mt-0.5 flex items-baseline gap-2"><span className="font-medium">{answer || 'Answered'}</span><span className="text-[12px] font-semibold text-brand opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">Edit</span></span>
+                </button>
+              ) : cur ? (
+                <div className="sf-step-in rounded-3xl bg-surface p-5 sm:p-7">
+                  <h2 className="font-display text-[24px] font-bold leading-tight sm:text-[28px]">{resolve(step.q)}</h2>
+                  {step.hint && <p className="mt-2 text-muted">{resolve(step.hint)}</p>}
+                  <div className="mt-5">{step.body(L, d)}</div>
+                  <div className="mt-6 flex items-center justify-between gap-3">
+                    {i > 0 ? <button onClick={() => L.setStep(n, i - 1)} className="inline-flex items-center gap-1.5 text-[14px] font-medium text-muted hover:text-ink"><ArrowLeft size={16} /> Back</button> : <span />}
+                    <Btn size="lg" disabled={!step.ok(L)} onClick={() => L.setStep(n, i + 1)}>{i === steps.length - 1 ? STEP_CTA[n] : 'Next question'} <ArrowRight size={18} /></Btn>
+                  </div>
+                </div>
+              ) : (
+                <span className="block pt-1 text-[15px] text-muted/70">{resolve(step.q)}</span>
+              )}
+            </li>
+          )
+        })}
+        <li ref={atOutput ? focusRef : undefined} className="relative scroll-mt-36 pl-12">
+          <span className={`absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full ${atOutput ? 'bg-accent text-white' : 'bg-surface text-muted'}`}><Trophy size={15} /></span>
+          {!atOutput && <span className="block pt-1 text-[15px] text-muted/70">You get: {def.gets}</span>}
+        </li>
+      </ol>
+
+      {atOutput && (
+        <div className="mt-2">
+          <Reward def={def} />
+          {def.output({ ...ctx, go })}
+          <div className="mt-6 flex flex-col items-stretch gap-2 sm:items-end">
+            <Btn size="lg" onClick={nextStage} disabled={!canNext} className="sm:min-w-[320px]">{NEXT_LABEL[n]} <ArrowRight size={18} /></Btn>
+            {!canNext && n === 4 && <p className="text-[13px] text-muted sm:text-right">Publish your listing to continue.</p>}
           </div>
-          {preview && <aside className="h-fit rounded-3xl bg-surface p-5 lg:sticky lg:top-24" aria-label="Live preview">{preview}</aside>}
         </div>
       )}
-      <DemoBar n={n} />
-    </div>
+    </>
   )
 }
