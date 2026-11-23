@@ -376,7 +376,28 @@ const OLD = [
       ) },
       { q: (L, d) => d.bundleLabel, ok: () => true, body: (L, d) => { const { price } = priceModel(L); return <Choices name="Bundles" options={opts(['yes', 'Yes', d.bundles(price).map((b) => `${b.name} at ${money2(b.price)}`).join(' · ')], ['no', 'Not now'])} value={L.pricing.bundles ? 'yes' : 'no'} onChange={(v) => L.patch('pricing', { bundles: v === 'yes' })} /> } },
     ],
-    preview: (L) => { if (!L.category) return null; const { price, r } = priceModel(L); return <div><div className="text-[13px] text-muted">At {money(price)}</div><div className="mt-1 font-display text-2xl font-bold tnum">{money2(r.effectiveHourly)}/hr</div><div className="text-[13px] text-muted tnum">{money2(r.sellerTakeHome)} take-home per order</div></div> },
+    // Builds up only from what the student has answered: costs, then time, then pay once they pick a price.
+    // Price stage questions: 0 costs, 1 time, 2 start-up, 3 price level, 4 goal, 5 bundles.
+    preview: (L) => {
+      const reached = L.furthest?.[2] ?? 0
+      if (!L.category || reached < 1) return null
+      const { price, r, unitCost } = priceModel(L)
+      const d = CATEGORIES[L.category]
+      const mins = L.pricing.minutesPerOrder || d.defaultMinutes
+      return (
+        <div>
+          <div className="text-[13px] text-muted">So far</div>
+          <div className="mt-1 text-[15px] tnum"><b className="font-semibold">{money2(unitCost)}</b> costs per order{reached >= 2 && <> · <b className="font-semibold">{mins} min</b> each</>}</div>
+          {reached >= 4 ? (
+            <div className="mt-3 border-t border-line pt-3">
+              <div className="text-[13px] text-muted">At {money(price)} you’d make</div>
+              <div className="mt-0.5 font-display text-2xl font-bold tnum">{money2(r.effectiveHourly)}/hr</div>
+              <div className="text-[13px] text-muted tnum">{money2(r.sellerTakeHome)} take-home per order</div>
+            </div>
+          ) : <div className="mt-2 text-[13px] text-muted">Your hourly pay appears once you pick a price.</div>}
+        </div>
+      )
+    },
     output: ({ L }) => <OutputCard eyebrow="Your price" title="Drag the price and watch your pay change"><PriceCard L={L} /></OutputCard>,
     next: 'Build my listing',
   },
