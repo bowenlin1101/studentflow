@@ -16,7 +16,7 @@ export const PLANS = {
 export function seed() {
   const now = Math.floor(Date.now() / H) * H
   const users = {
-    u_alex: { id: 'u_alex', name: 'Alex Rivera', email: 'alex.rivera@uwo.ca', year: '2nd', major: 'Medical Sciences', program: 'Medical Sciences, 2nd year', role: 'student', hue: 210 },
+    u_alex: { id: 'u_alex', name: 'Alex Rivera', email: 'alex.rivera@uwo.ca', year: '2nd', major: 'Medical Sciences', program: 'Medical Sciences, 2nd year', role: 'student', hue: 210, buyerRating: { avg: 5, count: 3 } },
     u_priya: { id: 'u_priya', name: 'Priya Patel', email: 'priya.patel@uwo.ca', year: '4th', major: 'Ivey HBA', program: 'Ivey HBA, 4th year', role: 'student', shop: 'Case & Co. Tutoring', hue: 330, sellerSince: now - 75 * D },
     u_maya: { id: 'u_maya', name: 'Maya Rodriguez', email: 'maya.rodriguez@uwo.ca', year: '2nd', major: 'Foods & Nutrition', program: 'Foods & Nutrition, 2nd year', role: 'student', hue: 20 },
     u_jordan: { id: 'u_jordan', name: 'Jordan Lee', year: '3rd', major: 'Computer Science', program: 'Computer Science, 3rd year', role: 'student', shop: 'Jordan Codes', hue: 160 },

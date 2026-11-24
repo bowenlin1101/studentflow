@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useReducer } from 'react'
 import { seed } from './data'
 import { sellerRate, buyerFee as buyerFeeFor } from './launch/lib/pricing'
 import { SUBSCRIPTION, FEES } from './launch/lib/config'
+import { addToAverage } from './launch/lib/reviews'
 
 export const H = 3600e3
 export const D = 24 * H
@@ -110,6 +111,26 @@ function reducer(s, a) {
       ] }))
       return { ...s2, conversations: [...chats, ...s2.conversations],
         listings: s2.listings.map((x) => (x.id === l.id ? { ...x, views: x.views + 46, impressions: x.impressions + 380 } : x)) }
+    }
+    case 'review': {
+      // side 'buyer' = the buyer rating the seller; side 'seller' = the seller rating the buyer
+      const o = s.orders.find((x) => x.id === a.orderId)
+      if (!o || o.outcome !== 'completed' || o[a.side + 'Review']) return s
+      const review = { stars: a.stars, text: (a.text || '').trim(), tags: a.tags || [], at: now }
+      const orders = s.orders.map((x) => (x.id === o.id ? { ...x, [a.side + 'Review']: review } : x))
+      if (a.side === 'buyer') {
+        const listings = s.listings.map((l) => {
+          if (l.id !== o.listingId) return l
+          const agg = addToAverage(l.rating, l.reviews, a.stars)
+          const entry = { ...review, by: o.buyerId, orderId: o.id }
+          return { ...l, rating: agg.avg, reviews: agg.count, reviewList: [entry, ...(l.reviewList || [])] }
+        })
+        return { ...s, orders, listings }
+      }
+      const b = s.users[o.buyerId]
+      const prev = b.buyerRating || { avg: 0, count: 0 }
+      const agg = addToAverage(prev.avg, prev.count, a.stars)
+      return { ...s, orders, users: { ...s.users, [b.id]: { ...b, buyerRating: { avg: agg.avg, count: agg.count } } } }
     }
     case 'order': {
       return { ...s, orders: s.orders.map((o) => (o.id === a.id ? orderReducer(o, a, now) : o)) }

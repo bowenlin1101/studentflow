@@ -4,7 +4,7 @@ Investor prototype for Studentflow, a platform for Western University (@uwo.ca) 
 
 - **Launch:** a guided flow (pick, price, listing, reach out to 10 people, reflect, run it with school) that takes a student from "I like baking" to a live listing and their first sale. Reflect doubles as the monthly check-in
 - **Sell:** listings, buyer chat, orders, a sales dashboard, customers and a tax summary
-- **Buy:** search the marketplace, check out with a held payment and $1 Buyer Protection, rebook regulars fee-free, and confirm each order with a two-way code swap
+- **Buy:** search the marketplace, check out with a held payment and $1 Buyer Protection, rebook regulars fee-free, and confirm each order with a two-way code swap, then rate each other (reviews stay hidden until both post, or 7 days)
 
 Fees and plans live in `src/launch/lib/config.ts`: 8% on a seller's first 10 sales, then 6%, 4% on rebooks, $1 Buyer Protection, and $15/month after a trial of 3 sales or 30 days (whichever is later). Press **I** (or triple-tap the logo) for the investor view of one order's economics.
 

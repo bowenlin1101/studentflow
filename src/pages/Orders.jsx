@@ -1,10 +1,88 @@
 import React, { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, MapPin, MessageCircle, FastForward } from 'lucide-react'
+import { ArrowLeft, Check, MapPin, MessageCircle, FastForward, Star } from 'lucide-react'
+import { REVIEW_TAGS, otherReviewVisible, daysUntilReveal } from '../launch/lib/reviews'
 import { useStore, orderStatus, STATUS, money2, fmtWhen, fmtTime, payout, sellerFee, buyerTotal, LOCK_MS, CHECKIN_WINDOW, NOSHOW_GRACE, cancelFee } from '../store'
 import { Badge, Btn, ListingArt, Tabs, inputCls, Modal } from '../ui'
 
 const PERSONA_IDS = ['u_alex', 'u_priya', 'u_maya']
+
+
+const STAR_WORDS = ['', 'Poor', 'Not great', 'OK', 'Good', 'Excellent']
+
+function StarInput({ value, onChange }) {
+  const [hover, setHover] = useState(0)
+  const shown = hover || value
+  return (
+    <div className="flex items-center gap-1" role="radiogroup" aria-label="Rating" onMouseLeave={() => setHover(0)}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={`${n} star${n > 1 ? 's' : ''}`}
+          onMouseEnter={() => setHover(n)} onClick={() => onChange(n)} className="rounded-lg p-0.5">
+          <Star size={30} className={n <= shown ? 'fill-accent text-accent' : 'text-line'} strokeWidth={1.6} />
+        </button>
+      ))}
+      <span className="ml-2 text-[14px] font-medium text-muted">{STAR_WORDS[shown]}</span>
+    </div>
+  )
+}
+
+function Stars({ n, size = 15 }) {
+  return <span className="inline-flex" aria-label={`${n} out of 5 stars`}>{[1, 2, 3, 4, 5].map((i) => <Star key={i} size={size} className={i <= n ? 'fill-accent text-accent' : 'text-line'} />)}</span>
+}
+
+/** After a completed order: rate the other person. Reviews stay hidden until both post (or 7 days pass). */
+function RateCard({ o, side, other, now }) {
+  const { dispatch, toast } = useStore()
+  const [stars, setStars] = useState(0)
+  const [tags, setTags] = useState([])
+  const [text, setText] = useState('')
+  const first = other.name.split(' ')[0]
+  const mine = o[side + 'Review']
+  const theirs = o[(side === 'buyer' ? 'seller' : 'buyer') + 'Review']
+  const visible = otherReviewVisible(o, side, now)
+  const options = REVIEW_TAGS[side === 'buyer' ? 'seller' : 'buyer']
+  const post = () => { dispatch({ type: 'review', orderId: o.id, side, stars, tags, text }); toast(`Thanks! Your review of ${first} is saved`) }
+  return (
+    <div className="mt-8 rounded-3xl bg-surface p-6">
+      {!mine ? (
+        <>
+          <div className="font-display text-xl font-bold">How was {side === 'buyer' ? `buying from ${first}` : `selling to ${first}`}?</div>
+          <p className="mt-1 text-[13px] text-muted">Only people who completed an order can review each other. Your review stays hidden until {first} posts theirs, or for 7 days.</p>
+          <div className="mt-4"><StarInput value={stars} onChange={setStars} /></div>
+          {stars > 0 && (
+            <>
+              <div className="mt-4 flex flex-wrap gap-2">{options.map((t) => {
+                const on = tags.includes(t)
+                return <button key={t} type="button" aria-pressed={on} onClick={() => setTags(on ? tags.filter((x) => x !== t) : [...tags, t])} className={`rounded-full border px-3 py-1.5 text-[13px] font-medium ${on ? 'border-brand bg-brandsoft text-brand' : 'border-line'}`}>{t}</button>
+              })}</div>
+              <textarea id={`review-${o.id}`} rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={`Anything else? (optional)`} className={`${inputCls} mt-3`} aria-label="Comment" />
+              <Btn className="mt-3" onClick={post}>Post review</Btn>
+            </>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="text-[13px] font-semibold text-muted">Your review of {first}</div>
+          <div className="mt-1 flex items-center gap-2"><Stars n={mine.stars} />{mine.tags.length > 0 && <span className="text-[13px] text-muted">{mine.tags.join(' · ')}</span>}</div>
+          {mine.text && <p className="mt-1 text-[14px]">“{mine.text}”</p>}
+        </>
+      )}
+      <div className="mt-5 border-t border-line pt-4 text-[14px]">
+        {visible ? (
+          <>
+            <div className="text-[13px] font-semibold text-muted">{first}’s review of you</div>
+            <div className="mt-1 flex items-center gap-2"><Stars n={theirs.stars} />{theirs.tags.length > 0 && <span className="text-[13px] text-muted">{theirs.tags.join(' · ')}</span>}</div>
+            {theirs.text && <p className="mt-1">“{theirs.text}”</p>}
+          </>
+        ) : theirs ? (
+          <span className="text-muted">{first} has reviewed you. You’ll see it once you post yours.</span>
+        ) : (
+          <span className="text-muted">{first} hasn’t reviewed you yet. Reviews appear once you’ve both posted, or after {daysUntilReveal(o, now)} days.</span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function OrderRow({ o }) {
   const { s, me, now } = useStore()
@@ -19,6 +97,7 @@ function OrderRow({ o }) {
         <div className="truncate font-medium">{l.title}</div>
         <div className="text-[13px] text-muted tnum">{fmtWhen(o.outcome ? (o.completedAt || o.handoffAt) : o.handoffAt)}</div>
       </div>
+      {st === 'completed' && !o[(selling ? 'seller' : 'buyer') + 'Review'] && <Badge tone="accent"><Star size={11} className="fill-current" /> Rate</Badge>}
       <Badge tone={STATUS[st].tone} className="hidden sm:inline-flex">{STATUS[st].label}</Badge>
       <div className="w-20 shrink-0 text-right font-semibold tnum">{money2(selling ? payout(o) : buyerTotal(o))}</div>
     </button>
@@ -150,11 +229,13 @@ export function OrderDetail() {
 
       <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-8 gap-y-2 text-sm tnum">
         <dt className="text-muted">{side === 'buyer' ? 'Seller' : 'Buyer'}</dt>
-        <dd className="flex items-center gap-2">{other.name}{conv && <button onClick={() => { dispatch({ type: 'openConv', id: conv.id }); nav('/messages') }} className="text-muted hover:text-brand" aria-label="Open chat"><MessageCircle size={15} /></button>}</dd>
+        <dd className="flex items-center gap-2">{other.name}{side === 'seller' && <span className="text-[13px] text-muted">{other.buyerRating?.count ? <><Star size={12} className="inline fill-accent text-accent" /> {other.buyerRating.avg.toFixed(1)} as a buyer ({other.buyerRating.count})</> : 'New buyer'}</span>}{conv && <button onClick={() => { dispatch({ type: 'openConv', id: conv.id }); nav('/messages') }} className="text-muted hover:text-brand" aria-label="Open chat"><MessageCircle size={15} /></button>}</dd>
         <dt className="text-muted">When</dt><dd>{fmtWhen(o.handoffAt)}</dd>
         <dt className="text-muted">{side === 'buyer' ? 'You pay' : 'Order'}</dt><dd>{money2(side === 'buyer' ? buyerTotal(o) : o.total)}{o.qty > 1 && <span className="text-muted"> · {o.qty} × {money2(o.price)}</span>}{side === 'buyer' && <span className="text-muted"> · {o.buyerFee ? `incl. ${money2(o.buyerFee)} Buyer Protection` : 'Buyer Protection waived (rebook)'}</span>}</dd>
         {side === 'seller' && <><dt className="text-muted">You get</dt><dd>{money2(o.total - fee)} <span className="text-muted">after {Math.round((o.rate ?? 0.08) * 100)}% fee{o.rebook ? ' (regular customer rate)' : ''}</span></dd></>}
       </dl>
+
+      {st === 'completed' && <RateCard o={o} side={side} other={other} now={now} />}
 
       <details className="mt-6 text-sm">
         <summary className="cursor-pointer text-muted">Activity</summary>

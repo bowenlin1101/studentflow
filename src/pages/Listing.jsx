@@ -75,6 +75,21 @@ export default function ListingPage() {
             {!own && <Btn variant="outline" size="sm" onClick={message}>Message</Btn>}
           </div>
 
+          {!!l.reviewList?.length && (
+            <div className="mt-10">
+              <h2 className="mb-3 font-display text-lg font-bold">Reviews</h2>
+              <div className="grid gap-4">{l.reviewList.slice(0, 4).map((r) => (
+                <div key={r.orderId} className="rounded-2xl bg-surface p-4">
+                  <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                    <span className="inline-flex">{[1, 2, 3, 4, 5].map((i) => <Star key={i} size={14} className={i <= r.stars ? 'fill-accent text-accent' : 'text-line'} />)}</span>
+                    <span className="font-medium">{s.users[r.by]?.name.split(' ')[0]}</span><span className="text-muted">· verified purchase</span>
+                  </div>
+                  {r.tags.length > 0 && <div className="mt-1 text-[13px] text-muted">{r.tags.join(' · ')}</div>}
+                  {r.text && <p className="mt-1 text-[14px]">“{r.text}”</p>}
+                </div>
+              ))}</div>
+            </div>
+          )}
           {!!l.faq?.length && (
             <div className="mt-10">
               <h2 className="mb-3 font-display text-lg font-bold">Questions people ask</h2>
